@@ -1,0 +1,49 @@
+
+name: Build and publish container
+
+on:
+  push:
+    branches: [master]
+    paths: ['runtime/**', '.github/workflows/build-containers.yml']
+  pull_request:
+    paths: ['runtime/**', '.github/workflows/build-containers.yml']
+
+jobs:
+  build:
+    name: Build, Test, Publish Container
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+    env:
+      CONTAINER: drivendata/noaa-competition
+      SHA_TAG: ${{ github.sha }}
+      LATEST_TAG: latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Conatiner
+        run: |
+          docker build runtime --tag $CONTAINER:$SHA_TAG
+          docker build runtime --tag $CONTAINER:$LATEST_TAG
+
+      - name: Tests container packages
+        run: |
+          docker run --mount type=bind,source=$(pwd)/runtime/run-tests.sh,target=/run-tests.sh,readonly \
+            --mount type=bind,source=$(pwd)/runtime/tests,target=/tests,readonly \
+            $CONTAINER:$SHA_TAG \
+            /bin/bash -c "source activate py; python tests/test_installs.py"
+
+      - name: Login to DockerHub
+        if: github.ref == 'refs/heads/master'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish container if master branch
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker push $CONTAINER:$SHA_TAG
+          docker push $CONTAINER:$LATEST_TAG
