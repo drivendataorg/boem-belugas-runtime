@@ -1,0 +1,30 @@
+Unpacking submission...
+Archive:  ./submission/submission.zip
+  inflating: ./predict.py            
+Copying main.py
+... main.py copied bd6ff34c39b399463c4a1c2b4bd2b302  ./main.py
+Running submission with Python
+Traceback (most recent call last):
+  File "main.py", line 181, in <module>
+    typer.run(main)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/typer/main.py", line 855, in run
+    app()
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/typer/main.py", line 214, in __call__
+    return get_command(self)(*args, **kwargs)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/click/core.py", line 829, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/click/core.py", line 782, in main
+    rv = self.invoke(ctx)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/click/core.py", line 1066, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/click/core.py", line 610, in invoke
+    return callback(*args, **kwargs)
+  File "/home/appuser/miniconda/envs/py/lib/python3.8/site-packages/typer/main.py", line 497, in wrapper
+    return callback(**use_params)  # type: ignore
+  File "main.py", line 137, in main
+    assert path.exists(), f"File {path} not found!"
+AssertionError: File /codeexecution/data/dst_labels.csv not found!
+ERROR conda.cli.main_run:execute(34): Subprocess for 'conda run ['python', 'main.py']' command failed.  (See above for error)
+Exporting submission.csv result...
+ERROR: Script did not produce a submission.csv file in the main directory.
+================ END ================
