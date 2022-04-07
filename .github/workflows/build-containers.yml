@@ -3,7 +3,7 @@ name: Build and publish container
 
 on:
   push:
-    branches: [master]
+    branches: [master, setup]
     paths: ['runtime/**', '.github/workflows/build-containers.yml']
   pull_request:
     paths: ['runtime/**', '.github/workflows/build-containers.yml']
@@ -16,14 +16,14 @@ jobs:
       matrix:
         os: ['ubuntu-latest']
     env:
-      CONTAINER: drivendata/noaa-competition
+      CONTAINER: boembelugas.azurecr.io/test
       SHA_TAG: ${{ github.sha }}
       LATEST_TAG: latest
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build Conatiner
+      - name: Build Container
         run: |
           docker build runtime --tag $CONTAINER:$SHA_TAG
           docker build runtime --tag $CONTAINER:$LATEST_TAG
@@ -35,15 +35,17 @@ jobs:
             $CONTAINER:$SHA_TAG \
             /bin/bash -c "source activate py; python tests/test_installs.py"
 
-      - name: Login to DockerHub
-        if: github.ref == 'refs/heads/master'
-        uses: docker/login-action@v1
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Publish container if master branch
-        if: github.ref == 'refs/heads/master'
-        run: |
-          docker push $CONTAINER:$SHA_TAG
-          docker push $CONTAINER:$LATEST_TAG
+      - name: Push image to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - run: |
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}$CONTAINER:$LATEST_TAG
