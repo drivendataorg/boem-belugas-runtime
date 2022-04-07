@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM nvidia/cuda:11.0-base-ubuntu20.04
 
 # non-interactive package installs by setting these up front
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
