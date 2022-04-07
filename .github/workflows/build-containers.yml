@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ['ubuntu-latest']
     env:
-      CONTAINER: boembelugas.azurecr.io/test
+      CONTAINER: drivendata/belugas
       SHA_TAG: ${{ github.sha }}
       LATEST_TAG: latest
 
@@ -25,7 +25,7 @@ jobs:
 
       - name: Build Container
         run: |
-          docker build runtime --tag $CONTAINER:$LATEST_TAG
+          docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
 
       - name: Login to Azure
         uses: azure/login@v1
