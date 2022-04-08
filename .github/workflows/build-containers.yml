@@ -28,6 +28,13 @@ jobs:
           docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
           docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
 
+      - name: Tests container packages
+        run: |
+          docker run --mount type=bind,source=$(pwd)/runtime/run-tests.sh,target=/run-tests.sh,readonly \
+            --mount type=bind,source=$(pwd)/runtime/tests,target=/tests,readonly \
+            $CONTAINER:$SHA_TAG \
+            /bin/bash -c "source activate py; python tests/test_installs.py"
+
       - name: Login to Azure
         uses: azure/login@v1
         with:
