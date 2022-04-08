@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ['ubuntu-latest']
     env:
-      CONTAINER: drivendata/belugas
+      CONTAINER: drivendata/belugas-competition
       SHA_TAG: ${{ github.sha }}
       LATEST_TAG: latest
 
@@ -25,6 +25,7 @@ jobs:
 
       - name: Build Container
         run: |
+          docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
           docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
 
       - name: Login to Azure
@@ -39,4 +40,5 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - run: |
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
           docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
