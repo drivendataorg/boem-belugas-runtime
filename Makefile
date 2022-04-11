@@ -1,4 +1,4 @@
-.PHONY: build pack-benchmark pull test-submission
+.PHONY: build pull pack-benchmark pack-submission test-submission
 
 # ================================================================================================
 # Settings
