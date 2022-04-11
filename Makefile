@@ -28,7 +28,7 @@ _submission_write_perms:
 # Commands for building the container if you are changing the requirements
 # ================================================================================================
 
-## Builds the container locally, tagging it with cpu-local or gpu-local
+## Builds the container locally
 build:
 	docker build -t ${IMAGE} runtime
 
@@ -38,7 +38,7 @@ build:
 
 ## Pulls the official container from Azure Container Registry
 pull:
-	docker pull boembelugas.azurecr.io/${REPO}:${TAG}
+	docker pull boembelugas.azurecr.io/${IMAGE}
 
 ## Creates a submission/submission.zip file from the benchmark source code in benchmark_src
 pack-benchmark:
@@ -73,7 +73,7 @@ endif
 	docker run \
 		--mount type=bind,source="$(shell pwd)"/data,target=/codeexecution/data,readonly \
 		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
-		${REPO}:${TAG}
+		${IMAGE}
 
 
 #################################################################################
