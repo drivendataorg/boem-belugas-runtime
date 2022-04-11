@@ -3,7 +3,7 @@ name: Build and publish container
 
 on:
   push:
-    branches: [master, setup]
+    branches: [master]
     paths: ['runtime/**', '.github/workflows/build-containers.yml']
   pull_request:
     paths: ['runtime/**', '.github/workflows/build-containers.yml']
