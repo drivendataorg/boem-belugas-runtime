@@ -4,9 +4,12 @@
 # Settings
 # ================================================================================================
 
-REPO = drivendata/boem-belugas-competition
+REPO = drivendata/belugas-competition
 TAG = latest
+LOCAL_TAG = local
+
 IMAGE = ${REPO}:${TAG}
+LOCAL_IMAGE = ${REPO}:${LOCAL_TAG}
 
 # if not TTY (for example GithubActions CI) no interactive tty commands for docker
 ifneq (true, ${GITHUB_ACTIONS_NO_TTY})
@@ -30,7 +33,27 @@ _submission_write_perms:
 
 ## Builds the container locally
 build:
-	docker build -t ${IMAGE} runtime
+	echo ${LOCAL_IMAGE}
+	docker build -t ${LOCAL_IMAGE} runtime
+
+## Ensures that your locally built container can import all the Python packages successfully when it runs
+test-container: build _submission_write_perms
+	docker run \
+		${TTY_ARGS} \
+		--mount type=bind,source="$(shell pwd)"/runtime/run-tests.sh,target=/run-tests.sh,readonly \
+		--mount type=bind,source="$(shell pwd)"/runtime/tests,target=/tests,readonly \
+		${LOCAL_IMAGE} \
+		/bin/bash -c "bash /run-tests.sh"
+
+## Start your locally built container and open a bash shell within the running container; same as submission setup except has network access
+debug-container: build _submission_write_perms
+	docker run \
+		--mount type=bind,source="$(shell pwd)"/data,target=/codeexecution/data,readonly \
+		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
+		--shm-size 8g \
+		-it \
+		${LOCAL_IMAGE} \
+		/bin/bash
 
 # ================================================================================================
 # Commands for testing that your submission.zip will execute
@@ -67,6 +90,10 @@ endif
 		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
 		${IMAGE}
 
+## Delete temporary Python cache and bytecode files
+clean:
+	find . -type f -name "*.py[co]" -delete
+	find . -type d -name "__pycache__" -delete
 
 #################################################################################
 # Self Documenting Commands                                                     #
