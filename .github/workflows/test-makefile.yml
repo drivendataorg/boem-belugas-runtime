@@ -23,9 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Test zipping benchmark
+      - name: Test zipping submission_src
         run: |
-          make pack-benchmark
+          make pack-submission
 
       - name: Pull latest image and run submission in container
         run: |
