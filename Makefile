@@ -5,11 +5,8 @@
 # ================================================================================================
 
 REPO = drivendata/belugas-competition
-TAG = latest
-LOCAL_TAG = local
-
-IMAGE = ${REPO}:${TAG}
-LOCAL_IMAGE = ${REPO}:${LOCAL_TAG}
+REGISTRY_IMAGE = boembelugas.azurecr.io/${REPO}:latest
+LOCAL_IMAGE = ${REPO}:local
 
 # if not TTY (for example GithubActions CI) no interactive tty commands for docker
 ifneq (true, ${GITHUB_ACTIONS_NO_TTY})
@@ -20,7 +17,7 @@ endif
 # setting SUBMISSION_IMAGE as an environment variable will override the image
 SUBMISSION_IMAGE ?= $(shell docker images -q ${LOCAL_IMAGE})
 ifeq (,${SUBMISSION_IMAGE})
-SUBMISSION_IMAGE := $(shell docker images -q ${IMAGE})
+SUBMISSION_IMAGE := $(shell docker images -q ${REGISTRY_IMAGE})
 endif
 
 # Give write access to the submission folder to everyone so Docker user can write when mounted
@@ -61,7 +58,7 @@ debug-container: build _submission_write_perms
 
 ## Pulls the official container from Azure Container Registry
 pull:
-	docker pull boembelugas.azurecr.io/${IMAGE}
+	docker pull ${REGISTRY_IMAGE}
 
 ## Creates a submission/submission.zip file from the source code in submission_src
 pack-submission:
@@ -86,9 +83,12 @@ ifeq (${SUBMISSION_IMAGE},)
 		(to build a local version if you have changes).)
 endif
 	docker run \
+		${TTY_ARGS} \
+		--network none \
 		--mount type=bind,source="$(shell pwd)"/data,target=/codeexecution/data,readonly \
 		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
-		${IMAGE}
+	   	--shm-size 8g \
+		${REGISTRY_IMAGE}
 
 ## Delete temporary Python cache and bytecode files
 clean:
