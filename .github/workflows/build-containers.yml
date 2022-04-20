@@ -25,8 +25,8 @@ jobs:
 
       - name: Build Container
         run: |
-          docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
-          docker build runtime --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
+          docker build runtime --build-arg CPU_OR_GPU=${{ matrix.proc }} --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
+          docker build runtime --build-arg CPU_OR_GPU=${{ matrix.proc }} --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
 
       - name: Tests container packages
         run: |
