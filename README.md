@@ -1,3 +1,6 @@
+### For instructions about how to submit to the [BOEM Belugas Where's Whale-do](https://www.drivendata.org/competitions/96/competition-beluga-whales/) competition, start with the Code submission format [page](https://www.drivendata.org/competitions/96/competition-beluga-whales/page/482/) of the competition website.
+
+
 # BOEM Belugas Challenge
 
 ![Python 3.8](https://img.shields.io/badge/Python-3.8-blue) [![Docker Image](https://img.shields.io/badge/Docker%20image-latest-green)](https://hub.docker.com/r/drivendata/noaa-competition/tags?page=1&name=latest)
@@ -105,13 +108,13 @@ you can be pretty sure it will successfully run when you make an official submis
 In Docker parlance, your computer is the "host" that runs the container. The container is isolated from your host machine,
 with the exception of the following directories:
 
- - the `data` directory on the host machine is mounted in the container as a read-only directory `/codeexecution/data`
+ - the `data` directory on the host machine is mounted in the container as a read-only directory `/code_execution/data`
    **Note:**: you are not going to read this data directly, in fact, **attempting to do so is against the rules**.
    Your job is to write a function that can take seven days of data and make predictions with no additional context.
- - the `submission` directory on the host machine is mounted in the container as `/codeexecution/submission`
+ - the `submission` directory on the host machine is mounted in the container as `/code_execution/submission`
 
-When you make a submission, the code execution platform will unzip your submission assets to the `/codeexecution` folder.
-**This must result in a `predict.py` in the `/codeexecution`.**
+When you make a submission, the code execution platform will unzip your submission assets to the `/code_execution` folder.
+**This must result in a `predict.py` in the `/code_execution`.**
 
 ### Implement your solution
 
@@ -122,10 +125,10 @@ data (see the docstring) and output two predictions: one for the current hour (t
 See the extensive description on the [code submission page](https://www.drivendata.org/competitions/73/noaa-magnetic-forecasting/page/288/).
 
 Keep in mind that your submission will not have access to the internet, so everything it needs to run must be provided
-in the `submission.zip` you create. (You _are_ permitted to write intermediate files to `/codeexecution/submission`.)
+in the `submission.zip` you create. (You _are_ permitted to write intermediate files to `/code_execution/submission`.)
 
 **Note: You will implement all of your training and experiments on your machine. It is highly recommended that you use
-the same package versions that are in the runtime [py.yml](runtime/py.yml). They can be installed with `conda`.**
+the same package versions that are in the runtime [py.yml](runtime/environment.yml). They can be installed with `conda`.**
 
 ### Example benchmark submission
 
@@ -212,11 +215,4 @@ Once you open the pull request, Github Actions will automatically try building t
 run the tests in `runtime/tests`. These tests take ~30 minutes to run through, and may take longer if your build is
 queued behind others. You will see a section on the pull request page that shows the status of the tests and links to the logs.
 
-You may be asked to submit revisions to your pull request if the tests fail, or if a DrivenData team member asks for
-revisions. Pull requests won't be merged until all tests pass and the team has reviewed and approved the changes.
-
----
-
-## Good luck; have fun!
-
-Thanks for reading! Enjoy the competition, and [hit up the forums](https://community.drivendata.org/) if you have any questions!
+You may be asked to submit revisions to your pull request if the tests fail, or if a D
