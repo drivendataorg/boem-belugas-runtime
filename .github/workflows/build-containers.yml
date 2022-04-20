@@ -31,7 +31,7 @@ jobs:
 
       - name: Tests container packages
         run: |
-          docker run $CONTAINER:$SHA_TAG /bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
+          docker run ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG /bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
       - name: Login to Azure
         uses: azure/login@v1
