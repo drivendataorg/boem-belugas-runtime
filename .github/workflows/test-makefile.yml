@@ -15,7 +15,6 @@ jobs:
         os: ['ubuntu-latest']
         proc: ['cpu']
     env:
-      CONTAINER: drivendataorg/deid2-competition
       SHA_TAG: ${{ matrix.proc }}-${{ github.sha }}
       LATEST_TAG: ${{ matrix.proc }}-latest
       GITHUB_ACTIONS_NO_TTY: true
