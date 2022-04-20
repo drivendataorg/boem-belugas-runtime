@@ -31,10 +31,7 @@ jobs:
 
       - name: Tests container packages
         run: |
-          docker run --mount type=bind,source=$(pwd)/runtime/run-tests.sh,target=/run-tests.sh,readonly \
-            --mount type=bind,source=$(pwd)/runtime/tests,target=/tests,readonly \
-            ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG \
-            /bin/bash -c "source activate py; python tests/test_installs.py"
+          docker run $CONTAINER:$SHA_TAG /bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
       - name: Login to Azure
         uses: azure/login@v1
