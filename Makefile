@@ -4,9 +4,27 @@
 # Settings
 # ================================================================================================
 
+ifeq (, $(shell which nvidia-smi))
+CPU_OR_GPU ?= cpu
+else
+CPU_OR_GPU ?= gpu
+endif
+
+ifeq (${CPU_OR_GPU}, gpu)
+GPU_ARGS = --gpus all
+endif
+
+SKIP_GPU ?= false
+ifeq (${SKIP_GPU}, true)
+GPU_ARGS =
+endif
+
+TAG = ${CPU_OR_GPU}-latest
+LOCAL_TAG = ${CPU_OR_GPU}-local
+
 REPO = drivendata/belugas-competition
-REGISTRY_IMAGE = boembelugas.azurecr.io/${REPO}:latest
-LOCAL_IMAGE = ${REPO}:local
+REGISTRY_IMAGE = boembelugas.azurecr.io/${REPO}:${TAG}
+LOCAL_IMAGE = ${REPO}:${LOCAL_TAG}
 
 # if not TTY (for example GithubActions CI) no interactive tty commands for docker
 ifneq (true, ${GITHUB_ACTIONS_NO_TTY})
@@ -30,7 +48,7 @@ _submission_write_perms:
 
 ## Builds the container locally
 build:
-	docker build -t ${LOCAL_IMAGE} runtime
+	docker build --build-arg CPU_OR_GPU=${CPU_OR_GPU} -t ${LOCAL_IMAGE} runtime
 
 ## Ensures that your locally built container can import all the Python packages successfully when it runs
 test-container: build _submission_write_perms
@@ -42,14 +60,31 @@ test-container: build _submission_write_perms
 		/bin/bash -c "bash /run-tests.sh"
 
 ## Start your locally built container and open a bash shell within the running container; same as submission setup except has network access
-debug-container: build _submission_write_perms
+interactive-container: build _submission_write_perms
 	docker run \
-		--mount type=bind,source="$(shell pwd)"/data,target=/codeexecution/data,readonly \
-		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
+		--mount type=bind,source="$(shell pwd)"/data,target=/code_execution/data,readonly \
+		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
 		--shm-size 8g \
 		-it \
 		${LOCAL_IMAGE} \
 		/bin/bash
+
+## Remove specific version pins from Python conda environment YAML
+unpin-requirements:
+	@echo "Unpinning requirements"
+	sed -i 's/=.*$$//' runtime/environment.yml
+
+## Export the conda environment YAML from the container
+export-requirements:
+	@echo "Exporting requirements"
+	docker run \
+		-a stdout \
+		${LOCAL_IMAGE} \
+		/bin/bash -c "conda env export -n environment" \
+		> runtime/environment.yml
+
+## Resolve the dependencies inside the container and write an environment YAML file on the host machine
+resolve-requirements: build export-requirements
 
 # ================================================================================================
 # Commands for testing that your submission.zip will execute
@@ -84,8 +119,8 @@ endif
 	docker run \
 		${TTY_ARGS} \
 		--network none \
-		--mount type=bind,source="$(shell pwd)"/data,target=/codeexecution/data,readonly \
-		--mount type=bind,source="$(shell pwd)"/submission,target=/codeexecution/submission \
+		--mount type=bind,source="$(shell pwd)"/data,target=/code_execution/data,readonly \
+		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
 	   	--shm-size 8g \
 		${REGISTRY_IMAGE}
 

@@ -3,7 +3,7 @@ set -euxo pipefail
 exit_code=0
 
 {
-    cd /codeexecution
+    cd /code_execution
 
     echo "List installed packages"
     echo "######################################"
@@ -27,7 +27,7 @@ exit_code=0
     fi
 
     echo "================ END ================"
-} |& tee "/codeexecution/submission/log.txt"
+} |& tee "/code_execution/submission/log.txt"
 
-cp /codeexecution/submission/log.txt /tmp/log
+cp /code_execution/submission/log.txt /tmp/log
 exit $exit_code
