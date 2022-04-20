@@ -18,8 +18,8 @@ jobs:
         proc: ['cpu', 'gpu']
     env:
       CONTAINER: drivendata/belugas-competition
-      SHA_TAG: ${{ github.sha }}
-      LATEST_TAG: latest
+      SHA_TAG: ${{ matrix.proc }}-${{ github.sha }}
+      LATEST_TAG: ${{ matrix.proc }}-latest
 
     steps:
       - uses: actions/checkout@v2
