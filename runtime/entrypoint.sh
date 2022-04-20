@@ -7,7 +7,7 @@ exit_code=0
 
     echo "List installed packages"
     echo "######################################"
-    conda list -n py
+    conda list -n condaenv
     echo "######################################"
 
     echo "Unpacking submission..."
@@ -17,7 +17,7 @@ exit_code=0
     if [ -f "main.py" ]
     then
         echo "Running code submission with Python"
-        conda run --no-capture-output -n py python main.py
+        conda run --no-capture-output -n condaenv python main.py
 
 	    echo "... finished"
 
