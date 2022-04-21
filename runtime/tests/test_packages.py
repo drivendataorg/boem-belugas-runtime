@@ -17,7 +17,6 @@ packages = [
     "sklearn",  # scikit-learn
     "tensorflow",
     "torch",  # pytorch
-    "xarray",
 ]
 
 
