@@ -12,9 +12,9 @@ This repository contains the definition of the environment where your code submi
 This repository has three primary uses for competitors:
 
 1. 💡 **Example solutions**: You can find two examples that will help you develop your own solution. 
-  - **[Quickstart example](TBD):** A minimal code example that runs succesfully in the runtime environment and outputs a properly formatted submission CSV. This will generate random predictions, so unfortunately you won't win the competition this example, but you can use it as a guide for bringing in your own work and generating a real submission.
-  - **Benchmark solution:** This example implements the benchmark solution submission code based on the [benchmark blog post](TBD).
-2. 🔧 **Test your submission**: Test your `submission` files with a locally running version of the container to discover errors before submitting to the competition site. 
+    - **[Quickstart example](TBD):** A minimal code example that runs succesfully in the runtime environment and outputs a properly formatted submission CSV. This will generate random predictions, so unfortunately you won't win the competition with this example, but you can use it as a guide for bringing in your own work and generating a real submission.
+    - **Benchmark solution:** This example implements the benchmark solution based on the [benchmark blog post](TBD).
+2. 🔧 **Test your submission**: Test your submission with a locally running version of the container to discover errors before submitting to the competition site. 
 3. 📦 **Request new packages in the official runtime**: Since the Docker container will not have network access, all packages must be pre-installed. If you want to use a package that is not in the runtime environment, make a pull request to this repository.
 
  ----
@@ -23,7 +23,7 @@ This repository has three primary uses for competitors:
  - [Prerequisites](#prerequisites)
  - [Download the data](#download-the-data)
  - [Run Make commands](#run-make-commands)
-### [Creating your own submission](#creating-your-own-submission)
+### [Developing your own submission](#developing-your-own-submission)
  - [Steps](#steps)
  - [Logging](#logging)
  - [Scoring your submission](#scoring-your-submission)
@@ -45,14 +45,14 @@ This section guides you through the steps to generate a simple but valid submiss
 First, make sure you have the prerequisites installed.
 
  - A clone or fork of this repository
+ - At least 13 GB (_todo: double check with final image_) of free space for both the training images and the Docker container images. 
  - [Docker](https://docs.docker.com/get-docker/)
- - At least 13 GB (_todo: double check with final image_) of free space for both the training images and the Docker container images
- - GNU make (optional, but useful for running commands in the Makefile)
+ - [GNU make](https://www.gnu.org/software/make/) (optional, but useful for running commands in the Makefile)
 
 ### Download the data
 
 First, download the data from the competition [download page](https://www.drivendata.org/competitions/96/competition-beluga-whales/data/)
-and copy each file into the project `data/` folder. Once everything is downloaded and in the right location, it should look like this:
+and copy each file into the project `data` folder. Once everything is downloaded and in the right location, it should look something like this:
 
 ```
 data/                         # Competition data directory
@@ -72,7 +72,7 @@ data/                         # Competition data directory
        └── scenario03-example.csv
 ```
 
-When a Docker container is launched from your computer (or the "host" machine), the `data` directory on your host machine will be mounted as a read-only directory in the container as `code_execution/data`. In the runtime, your code will then be able to access all the competition data at `code_execution/data`.
+Later in this guide, when we launch a Docker container from your computer (or the "host" machine), the `data` directory on your host machine will be mounted as a read-only directory in the container as `code_execution/data`. In the runtime, your code will then be able to access all the competition data at `code_execution/data`.
 
 #### What's in `data`
 
@@ -80,7 +80,7 @@ Let's briefly review the contents of `data` and what they're used for:
 
 * **`images`** directory contains all of the image files (.jpg).
 * **`metadata.csv`** is a CSV file containing metadata (image dimensions, viewpoint, etc) for each image.
-* **`databases`** directory contains a text file for each _scenario_. Each text file contains the image IDs for all images in its scenario _database_. For example, `scenario01-example` might look something like this, where `train0123` is an image ID:
+* **`databases`** directory contains a text file for each _scenario_. Each text file contains the image IDs for all images in its scenario _database_. For example, `scenario01-example.txt` might look something like this, where `train0123` is an image ID:
 
     ```
     train0123
@@ -115,17 +115,17 @@ for scenario in scenarios:
       submission.append(image_rankings)
 ```
 
-An example `main.py` script is provided in this repository for you to get started. You are free to modify `main.py` as needed provided that you are otherwise adhering to the [competition rules](https://www.drivendata.org/competitions/96/competition-beluga-whales/page/482/). Your main focus in this competition will be figuring out the best way to find matching images of beluga whales in the `run_inference` command above (or a similar function you've defined).
+An example `main.py` script is provided in this repository for you to get started. You are free to modify `main.py` as needed provided that you are otherwise adhering to the [competition rules](https://www.drivendata.org/competitions/96/competition-beluga-whales/rules/). Your main focus in this competition will be on developing the `run_inference` command above (or a similar function you've defined) such that it can produce good matches between the query and database images of beluga whales.
 
-But you'll get to all of that later. For now, let's continue with the quickstart and generate a trivial submission of random predictions so that we can see the entire pipeline in action.
+But we'll get around to all that in due time. For now, let's continue with the quickstart and generate a trivial submission of random predictions so that we can see the entire pipeline in action.
 
 ### Run Make commands
 
-To test out the full execution pipeline, make sure Docker is running and then run the following commands in the terminal: 
+To test out the full execution pipeline, make sure Docker is running and then run the following commands in the terminal:
 
-1. `make pull` pulls the latest official Docker image from the container registry ([Azure](https://azure.microsoft.com/en-us/services/container-registry/)). You'll need an internet connection for this.
-2. `make pack-quickstart` zips the contents of the `submission_quickstart` directory and saves it as `submission/submission.zip`. This is the file containing your code that you will upload to the DrivenData competition site for code execution. But first we'll test that everything looks good locally (see next step). 
-3. `make test-submission` will do a test run of your submission, simulating what happens during actual code execution. This command runs the Docker container with the requisite host directories mounted, and executes `main.py` to produce a CSV file with your image rankings at `submission/submission.csv`.
+1. **`make pull`** pulls the latest official Docker image from the container registry ([Azure](https://azure.microsoft.com/en-us/services/container-registry/)). You'll need an internet connection for this.
+2. **`make pack-quickstart`** zips the contents of the `submission_quickstart` directory and saves it as `submission/submission.zip`. This is the file containing your code that you will upload to the DrivenData competition site for code execution. But first we'll test that everything looks good locally (see next step). 
+3. **`make test-submission`** will do a test run of your submission, simulating what happens during actual code execution. This command runs the Docker container with the requisite host directories mounted, and executes `main.py` to produce a CSV file with your image rankings at `submission/submission.csv`.
 
 ```bash
 make pull
@@ -133,13 +133,15 @@ make pack-quickstart
 make test-submission
 ```
 
-🎉**Congratulations!** You've just completed your first test run for the BOEM Belugas competition. If this were a real submission, you would upload the `submission.zip` file from step 2 above to the competition [Submissions page](https://www.drivendata.org/competitions/96/competition-beluga-whales/submissions/). 
+🎉 **Congratulations!** You've just completed your first test run for the BOEM Belugas competition. If this were a real submission, you would upload the `submission.zip` file from step 2 above to the competition [Submissions page](https://www.drivendata.org/competitions/96/competition-beluga-whales/submissions/). 
 
-Finally, there's one last step that takes place during code execution and which we haven't described yet: the `submission.csv` that is written out during code execution will get **scored** automatically using the [competition scoring metric](https://www.drivendata.org/competitions/96/competition-beluga-whales/page/479/#performance_metric) to determine your rank on the leaderboard. We'll talk in more detail below about how you can also score your submissions locally (with the _publicly_ available labels) without using up your submissions budget.
+Finally, there's one last step that takes place at the end of code execution and which we haven't described yet: the `submission.csv` that is written out during code execution will get **scored** automatically using the [competition scoring metric](https://www.drivendata.org/competitions/96/competition-beluga-whales/page/479/#performance_metric) to determine your rank on the leaderboard. We'll talk in more detail below about how you can also score your submissions locally (with the _publicly_ available labels) without using up your submissions budget.
 
 ----
 
-## Creating your own submission
+## Developing your own submission
+
+Now that you've gone through the quickstart example, let's talk about how to develop your own solution for the competition.
 
 ### Steps
 
@@ -163,9 +165,9 @@ Let's walk through what you'll need to do, step-by-step. The overall process her
     $ make pull
     ```
 
-4. **Save all of your submission files, including the required `main.py` script, in the `submission_src` folder of the runtime repository.**
+4. ⚙️ **Save all of your submission files, including the required `main.py` script, in the `submission_src` folder of the runtime repository.** This is where the real work happens.
    * You are free to modify the `main.py` template we've provided, and you'll obviously want to add any code necessary to process the queries, cache results, and run inference. Just make sure that you adhere to the competition rules and you still produce a `submission.csv` in the correct format. 
-   * Also keep in mind that the runtime already contains a number of packages that might be useful for you ([cpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-cpu.yml) and [gpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-gpu.yml) versions). If there are other packages you'd like to be added, see the section below on [adding new packages](#updating-runtime-packages).
+   * Also keep in mind that the runtime already contains a number of packages that might be useful for you ([cpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-cpu.yml) and [gpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-gpu.yml) versions). If there are other packages you'd like added, see the section below on [updating runtime packages](#updating-runtime-packages).
    * Finally, make sure any model weights or other files you need are also saved in `submission_src`.
 
 5. **Create a `submission/submission.zip` file containing your code and model assets:**
@@ -184,7 +186,7 @@ Let's walk through what you'll need to do, step-by-step. The overall process her
 
 
 
-⚠️ **Remember** that for local testing purposes, the `code_execution/data` directory is just a mounted version of what you have saved locally in this project's `data` directory. So you will just be using the publicly available training files for local testing. In the official code execution environment, `code_execution/data` will contain the _actual test data_, which no participants have access to, and this is what will be used to compute your score for the leaderboard.
+> ⚠️ **Remember** that for local testing purposes, the `code_execution/data` directory is just a mounted version of what you have saved locally in this project's `data` directory. So you will just be using the publicly available training files for local testing. In the official code execution environment, `code_execution/data` will contain the _actual test data_, which no participants have access to, and this is what will be used to compute your score for the leaderboard.
 
 
 
@@ -221,7 +223,7 @@ You can test your submission _without_ internet access by running `BLOCK_INTERNE
 It is common for models to download pre-trained weights from the internet. Since submissions do not have open access to the internet, you will need to include all weights along with your `submission.zip` and make sure that your code loads them from disk and rather than the internet.
 
 
-#### CPU and GPU
+### CPU and GPU
 
 The `make` commands will try to select the CPU or GPU image automatically by setting the `CPU_OR_GPU` variable based on whether `make` detects `nvidia-smi`.
 
@@ -238,31 +240,7 @@ CPU_OR_GPU=cpu make test-submission
 
 If you want to try using the GPU image on your machine but you don't have a GPU device that can be recognized, you can use `SKIP_GPU=true`. This will invoke `docker` without the `--gpus all` argument.
 
-
-### Make commands
-
-Running `make` at the terminal will tell you all the commands available in the repository:
-
-```
-Settings based on your machine:
-SUBMISSION_IMAGE=0ca9bc8db545   # ID of the image that will be used when running test-submission
-
-Available competition images:
-drivendata/belugas-competition:cpu-local (0ca9bc8db545); drivendata/belugas-competition:gpu-local (916b2fbc2308);
-
-Available commands:
-
-build               Builds the container locally 
-clean               Delete temporary Python cache and bytecode files 
-interact-container  Start your locally built container and open a bash shell within the running container; same as submission setup except has network access 
-pack-submission     Creates a submission/submission.zip file from the source code in submission_src 
-pull                Pulls the official container from Azure Container Registry 
-test-container      Ensures that your locally built container can import all the Python packages successfully when it runs 
-test-submission     Runs container using code from `submission/submission.zip` and data from `data/` 
-
-```
-
-## Updating runtime packages
+### Updating runtime packages
 
 If you want to use a package that is not in the environment, you are welcome to make a pull request to this repository. If you're new to the GitHub contribution workflow, check out [this guide by GitHub](https://docs.github.com/en/get-started/quickstart/contributing-to-projects). The runtime manages dependencies using [conda](https://docs.conda.io/en/latest/) environments. [Here is a good general guide](https://towardsdatascience.com/a-guide-to-conda-environments-bc6180fc533) to conda environments. The official runtime uses **Python 3.9.7** environments.
 
@@ -290,6 +268,30 @@ To submit a pull request for a new package:
 6. Once you open the pull request, Github Actions will automatically try building the Docker images with your changes and running the tests in `runtime/tests`. These tests can take up to 30 minutes, and may take longer if your build is queued behind others. You will see a section on the pull request page that shows the status of the tests and links to the logs.
    
 7. You may be asked to submit revisions to your pull request if the tests fail or if a DrivenData team member has feedback. Pull requests won't be merged until all tests pass and the team has reviewed and approved the changes.
+
+
+### Make commands
+
+Running `make` at the terminal will tell you all the commands available in the repository:
+
+```
+Settings based on your machine:
+SUBMISSION_IMAGE=f6961d910a89   # ID of the image that will be used when running test-submission
+
+Available competition images:
+drivendata/belugas-competition:cpu-local (f6961d910a89); drivendata/belugas-competition:gpu-local (916b2fbc2308);
+
+Available commands:
+
+build               Builds the container locally 
+clean               Delete temporary Python cache and bytecode files 
+interact-container  Start your locally built container and open a bash shell within the running container; same as submission setup except has network access 
+pack-quickstart     Creates a submission/submission.zip file from the source code in submission_quickstart 
+pack-submission     Creates a submission/submission.zip file from the source code in submission_src 
+pull                Pulls the official container from Azure Container Registry 
+test-container      Ensures that your locally built container can import all the Python packages successfully when it runs 
+test-submission     Runs container using code from `submission/submission.zip` and data from `data/` 
+```
 
 ---
 
