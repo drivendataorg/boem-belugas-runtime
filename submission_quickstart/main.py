@@ -1,0 +1,1 @@
+# TBD once we have the publicly available scenario examples (databases/*.txt and queries/*.csv files)
