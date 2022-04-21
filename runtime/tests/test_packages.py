@@ -13,8 +13,6 @@ packages = [
     "keras",
     "numpy",
     "pandas",
-    "rasterio",
-    "rioxarray",
     "scipy",
     "sklearn",  # scikit-learn
     "tensorflow",
