@@ -31,6 +31,11 @@ ifneq (true, ${GITHUB_ACTIONS_NO_TTY})
 TTY_ARGS = -it
 endif
 
+# option to block or allow internet access from the submission Docker container
+ifeq (true, ${BLOCK_INTERNET})
+NETWORK_ARGS = --network none
+endif
+
 # To run a submission, use local version if that exists; otherwise, use official version
 # setting SUBMISSION_IMAGE as an environment variable will override the image
 SUBMISSION_IMAGE ?= $(shell docker images -q ${LOCAL_IMAGE})
@@ -60,7 +65,7 @@ test-container: build _submission_write_perms
 		/bin/bash -c "bash /run-tests.sh"
 
 ## Start your locally built container and open a bash shell within the running container; same as submission setup except has network access
-interactive-container: build _submission_write_perms
+interact-container: build _submission_write_perms
 	docker run \
 		--mount type=bind,source="$(shell pwd)"/data,target=/code_execution/data,readonly \
 		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
@@ -68,27 +73,6 @@ interactive-container: build _submission_write_perms
 		-it \
 		${LOCAL_IMAGE} \
 		/bin/bash
-
-## Remove specific version pins from Python conda environment YAML
-unpin-requirements:
-	@echo "Unpinning requirements"
-	sed -i 's/=.*$$//' runtime/environment.yml
-
-## Export the conda environment YAML from the container
-export-requirements:
-	@echo "Exporting requirements"
-	docker run \
-		-a stdout \
-		${LOCAL_IMAGE} \
-		/bin/bash -c "conda env export -n environment" \
-		> runtime/environment.yml
-
-## Resolve the dependencies inside the container and write an environment YAML file on the host machine
-resolve-requirements: build export-requirements
-
-# ================================================================================================
-# Commands for testing that your submission.zip will execute
-# ================================================================================================
 
 ## Pulls the official container from Azure Container Registry
 pull:
@@ -118,6 +102,8 @@ ifeq (${SUBMISSION_IMAGE},)
 endif
 	docker run \
 		${TTY_ARGS} \
+		${GPU_ARGS} \
+		${NETWORK_ARGS} \
 		--network none \
 		--mount type=bind,source="$(shell pwd)"/data,target=/code_execution/data,readonly \
 		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
@@ -134,18 +120,65 @@ clean:
 #################################################################################
 
 .DEFAULT_GOAL := help
+
+# Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>
+# sed script explained:
+# /^##/:
+# 	* save line in hold space
+# 	* purge line
+# 	* Loop:
+# 		* append newline + line to hold space
+# 		* go to next line
+# 		* if line starts with doc comment, strip comment character off and loop
+# 	* remove target prerequisites
+# 	* append hold space (+ newline) to line
+# 	* replace newline plus comments by `---`
+# 	* print line
+# Separate expressions are necessary because labels cannot be delimited by
+# semicolon; see <http://stackoverflow.com/a/11799865/1968>
 .PHONY: help
-
-define PRINT_HELP_PYSCRIPT
-import re, sys
-
-pattern = re.compile(r'^## (.*)\n(.+):', re.MULTILINE)
-text = "".join(line for line in sys.stdin)
-for match in pattern.finditer(text):
-    help, target = match.groups()
-    print("%-20s %s" % (target, help))
-endef
-export PRINT_HELP_PYSCRIPT
-
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@echo
+	@echo "$$(tput bold)Settings based on your machine:$$(tput sgr0)"
+	@echo SUBMISSION_IMAGE=${SUBMISSION_IMAGE}  "\t# ID of the image that will be used when running test-submission"
+	@echo
+	@echo "$$(tput bold)Available competition images:$$(tput sgr0)"
+	@echo "$(shell docker images --format '{{.Repository}}:{{.Tag}} ({{.ID}}); ' ${REPO})"
+	@echo
+	@echo "$$(tput bold)Available commands:$$(tput sgr0)"
+	@echo
+	@sed -n -e "/^## / { \
+		h; \
+		s/.*//; \
+		:doc" \
+		-e "H; \
+		n; \
+		s/^## //; \
+		t doc" \
+		-e "s/:.*//; \
+		G; \
+		s/\\n## /---/; \
+		s/\\n/ /g; \
+		p; \
+	}" ${MAKEFILE_LIST} \
+	| LC_ALL='C' sort --ignore-case \
+	| awk -F '---' \
+		-v ncol=$$(tput cols) \
+		-v indent=19 \
+		-v col_on="$$(tput setaf 6)" \
+		-v col_off="$$(tput sgr0)" \
+	'{ \
+		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
+		n = split($$2, words, " "); \
+		line_length = ncol - indent; \
+		for (i = 1; i <= n; i++) { \
+			line_length -= length(words[i]) + 1; \
+			if (line_length <= 0) { \
+				line_length = ncol - indent - length(words[i]) - 1; \
+				printf "\n%*s ", -indent, " "; \
+			} \
+			printf "%s ", words[i]; \
+		} \
+		printf "\n"; \
+	}' \
+	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
