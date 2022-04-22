@@ -1,0 +1,3 @@
+scenario_id,queries_path,database_path
+scenario01,/code_execution/data/queries/scenario01.csv,/code_execution/data/databases/scenario01.csv
+scenario02,/code_execution/data/queries/scenario02.csv,/code_execution/data/databases/scenario02.csv
