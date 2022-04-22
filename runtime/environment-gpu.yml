@@ -1,0 +1,32 @@
+name: condaenv
+channels:
+  - fastai
+  - nvidia
+  - conda-forge
+dependencies:
+  - albumentations=1.0.3
+  - cudatoolkit=11.1.74=h6bb024c_0
+  - cudnn=8.2.1.32=h86fa8c9_0
+  - fastai=2.5.0
+  - imageio=2.9.0
+  - keras=2.6.0
+  - loguru=0.5.3
+  - mkl=2020.4
+  - numpy=1.20.3
+  - numba=0.54.1
+  - pandas=1.2.5
+  - pillow=8.2.0
+  - pip=20.3.4
+  - pytest=6.2.4
+  - python=3.9.7
+  - pytorch-lightning=1.4.1
+  - pytorch=1.8.0=cuda111py39h37e5b68_1
+  - scikit-image=0.18.2
+  - scikit-learn=0.24.2
+  - scipy=1.7.1
+  - timm=0.4.12
+  - torchvision=0.9.1=py39cuda111hcd06603_1_cuda
+  - tqdm=4.62.0
+  - pip:
+    - lightning-flash[image]==0.5.0
+    - tensorflow-gpu==2.6.0

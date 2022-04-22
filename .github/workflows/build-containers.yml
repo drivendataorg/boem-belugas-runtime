@@ -15,35 +15,35 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest']
+        proc: ['cpu', 'gpu']
     env:
-      CONTAINER: drivendata/noaa-competition
-      SHA_TAG: ${{ github.sha }}
-      LATEST_TAG: latest
+      CONTAINER: drivendata/belugas-competition
+      SHA_TAG: ${{ matrix.proc }}-${{ github.sha }}
+      LATEST_TAG: ${{ matrix.proc }}-latest
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build Conatiner
+      - name: Build Container
         run: |
-          docker build runtime --tag $CONTAINER:$SHA_TAG
-          docker build runtime --tag $CONTAINER:$LATEST_TAG
+          docker build runtime --build-arg CPU_OR_GPU=${{ matrix.proc }} --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
+          docker build runtime --build-arg CPU_OR_GPU=${{ matrix.proc }} --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG
 
       - name: Tests container packages
         run: |
-          docker run --mount type=bind,source=$(pwd)/runtime/run-tests.sh,target=/run-tests.sh,readonly \
-            --mount type=bind,source=$(pwd)/runtime/tests,target=/tests,readonly \
-            $CONTAINER:$SHA_TAG \
-            /bin/bash -c "source activate py; python tests/test_installs.py"
+          docker run ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG /bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
-      - name: Login to DockerHub
-        if: github.ref == 'refs/heads/master'
-        uses: docker/login-action@v1
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Publish container if master branch
-        if: github.ref == 'refs/heads/master'
-        run: |
-          docker push $CONTAINER:$SHA_TAG
-          docker push $CONTAINER:$LATEST_TAG
+      - name: Push image to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - run: |
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$SHA_TAG
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$CONTAINER:$LATEST_TAG

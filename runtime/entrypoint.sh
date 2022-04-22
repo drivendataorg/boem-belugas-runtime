@@ -1,47 +1,33 @@
 #!/bin/bash
-
+set -euxo pipefail
 exit_code=0
 
 {
-    cd /codeexecution
+    cd /code_execution
+
+    echo "List installed packages"
+    echo "######################################"
+    conda list -n condaenv
+    echo "######################################"
 
     echo "Unpacking submission..."
     unzip ./submission/submission.zip -d ./
+    ls -alh
+
     if [ -f "main.py" ]
     then
-        echo "ERROR: main.py is not user supplied; remove this from your submission."
-        exit_code=1
+        echo "Running code submission with Python"
+        conda run --no-capture-output -n condaenv python main.py
 
-    elif [ ! -f "predict.py" ]
-    then
-        echo "ERROR: predict.py does not exist."
-        exit_code=1
-    else
+	    echo "... finished"
 
-        echo "Copying main.py"
-        cp ./data/main.py ./
-        echo "... main.py copied $(md5sum ./main.py)"
-
-        echo "Running submission with Python"
-        conda run -n py --no-capture-output python main.py
-
-        echo "Exporting submission.csv result..."
-
-        # Valid scripts must create a "submission.csv" file within the same directory as main
-        if [ -f "submission.csv" ]
-        then
-            echo "Script completed its run."
-            cp submission.csv ./submission/submission.csv
         else
-            echo "ERROR: Script did not produce a submission.csv file in the main directory."
+            echo "ERROR: Could not find main.py in submission.zip"
             exit_code=1
-        fi
-
     fi
 
     echo "================ END ================"
-} |& tee "/codeexecution/submission/log.txt"
+} |& tee "/code_execution/submission/log.txt"
 
-# copy for additional log uses
-cp /codeexecution/submission/log.txt /tmp/log
+cp /code_execution/submission/log.txt /tmp/log
 exit $exit_code

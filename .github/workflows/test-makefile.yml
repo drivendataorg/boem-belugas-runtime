@@ -15,7 +15,6 @@ jobs:
         os: ['ubuntu-latest']
         proc: ['cpu']
     env:
-      CONTAINER: drivendataorg/deid2-competition
       SHA_TAG: ${{ matrix.proc }}-${{ github.sha }}
       LATEST_TAG: ${{ matrix.proc }}-latest
       GITHUB_ACTIONS_NO_TTY: true
@@ -23,9 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Test zipping benchmark
+      - name: Test zipping submission_src
         run: |
-          make pack-benchmark
+          make pack-submission
 
       - name: Pull latest image and run submission in container
         run: |
