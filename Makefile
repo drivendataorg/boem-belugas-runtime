@@ -25,6 +25,7 @@ LOCAL_TAG = ${CPU_OR_GPU}-local
 REPO = drivendata/belugas-competition
 REGISTRY_IMAGE = boembelugas.azurecr.io/${REPO}:${TAG}
 LOCAL_IMAGE = ${REPO}:${LOCAL_TAG}
+CONTAINER_NAME = belugas-competition
 
 # if not TTY (for example GithubActions CI) no interactive tty commands for docker
 ifneq (true, ${GITHUB_ACTIONS_NO_TTY})
@@ -108,6 +109,7 @@ ifeq (${SUBMISSION_IMAGE},)
 	$(error To test your submission, you must first run `make pull` (to get official container) or `make build` \
 		(to build a local version if you have changes).)
 endif
+	docker container rm ${CONTAINER_NAME} || true
 	docker run \
 		${TTY_ARGS} \
 		${GPU_ARGS} \
@@ -115,8 +117,11 @@ endif
 		--network none \
 		--mount type=bind,source="$(shell pwd)"/data,target=/code_execution/data,readonly \
 		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
-	   	--shm-size 8g \
+		--shm-size 8g \
+		--name ${CONTAINER_NAME} \
 		${REGISTRY_IMAGE}
+	docker cp ${CONTAINER_NAME}:/code_execution/submission.csv submission.csv
+	docker container rm ${CONTAINER_NAME}
 
 ## Delete temporary Python cache and bytecode files
 clean:
