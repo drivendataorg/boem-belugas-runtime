@@ -5,7 +5,7 @@ import pandas as pd
 
 ROOT_DIRECTORY = Path("/code_execution")
 DATA_DIRECTORY = ROOT_DIRECTORY / "data"
-OUTPUT_FILE = ROOT_DIRECTORY / "submission.csv"
+OUTPUT_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
 
 
 def predict(query_image_id, database_image_ids):

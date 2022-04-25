@@ -4,7 +4,7 @@ import pandas as pd
 import typer
 
 ROOT_DIRECTORY = Path("/code_execution")
-PREDICTION_FILE = ROOT_DIRECTORY / "submission.csv"
+PREDICTION_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
 DATA_DIRECTORY = ROOT_DIRECTORY / "data"
 
 

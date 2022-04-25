@@ -109,7 +109,6 @@ ifeq (${SUBMISSION_IMAGE},)
 	$(error To test your submission, you must first run `make pull` (to get official container) or `make build` \
 		(to build a local version if you have changes).)
 endif
-	docker container rm ${CONTAINER_NAME} || true
 	docker run \
 		${TTY_ARGS} \
 		${GPU_ARGS} \
@@ -119,9 +118,8 @@ endif
 		--mount type=bind,source="$(shell pwd)"/submission,target=/code_execution/submission \
 		--shm-size 8g \
 		--name ${CONTAINER_NAME} \
+		--rm \
 		${REGISTRY_IMAGE}
-	docker cp ${CONTAINER_NAME}:/code_execution/submission.csv submission.csv
-	docker container rm ${CONTAINER_NAME}
 
 ## Delete temporary Python cache and bytecode files
 clean:
