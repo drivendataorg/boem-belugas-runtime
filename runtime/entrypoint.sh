@@ -9,8 +9,7 @@ exit_code=0
     echo "######################################"
     conda list -n condaenv
     echo "######################################"
-    ls -alh
-    sleep 180
+
     echo "Unpacking submission..."
     unzip ./submission/submission.zip -d ./
     ls -alh
