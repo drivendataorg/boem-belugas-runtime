@@ -1,7 +1,7 @@
 ### If you haven't already done so, start by reading the [Code Submission Format](https://www.drivendata.org/competitions/96/beluga-whales/page/482/) page on the competition website.
 
 
-# Where's Whale-do: Code execution runtime
+# Where's Whale-do? : Code execution runtime
 
 ![Python 3.9.7](https://img.shields.io/badge/Python-3.9.7-blue) [![Docker Image](https://img.shields.io/badge/Docker%20image-latest-green)](https://hub.docker.com/r/drivendata/noaa-competition/tags?page=1&name=latest)
 
@@ -12,8 +12,8 @@ This repository contains the definition of the environment where your code submi
 This repository has three primary uses for competitors:
 
 1. 💡 **Example solutions**: You can find two examples that will help you develop your own solution.
-    - **[Quickstart example](TBD):** A minimal code example that runs succesfully in the runtime environment and outputs a properly formatted submission CSV. This will generate random predictions, so unfortunately you won't win the competition with this example, but you can use it as a guide for bringing in your own work and generating a real submission.
-    - **Benchmark solution:** This example implements the benchmark solution based on the [benchmark blog post](TBD).
+    - **[Quickstart example](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/submission_src/main.py):** A minimal code example that runs succesfully in the runtime environment and outputs a properly formatted submission CSV. This will generate arbitrary predictions, so unfortunately you won't win the competition with this example, but you can use it as a guide for bringing in your own work and generating a real submission.
+    - **Deep learning example:** This example implements the benchmark solution based on the [getting started blog post](TBD).
 2. 🔧 **Test your submission**: Test your submission with a locally running version of the container to discover errors before submitting to the competition site.
 3. 📦 **Request new packages in the official runtime**: Since the Docker container will not have network access, all packages must be pre-installed. If you want to use a package that is not in the runtime environment, make a pull request to this repository.
 
@@ -52,72 +52,35 @@ First, make sure you have the prerequisites installed.
 ### Download the data
 
 First, download the data from the competition [download page](https://www.drivendata.org/competitions/96/beluga-whales/data/)
-and copy each file into the project `data` folder. Once everything is downloaded and in the right location, it should look something like this:
+and copy each file into the project `data` folder. In particular, you will need the `metadata.csv` file and the `images.zip` archive,
+which you should extract to `data/images/`. Once everything is downloaded and in the right location, it should look something like this:
 
 ```
-data/                         # Competition data directory
+data/                         # Runtime data directory
+├── databases/                # Directory containing the database image IDs for each scenario
+│      ├── scenario01.csv
+│      └── scenario02.csv
 ├── images/                   # Directory containing all the query and database images
 │      ├── train0000.jpg
 │      ├── train0001.jpg
 │      ├── train0002.jpg
 │      └── ...
 ├── metadata.csv              # CSV file with image metadata (image dimensions, viewpoint, date)
-├── databases/                # Directory containing the database image IDs for each scenario
-│      ├── scenario01-example.txt
-│      ├── scenario02-example.txt
-│      └── scenario03-example.txt
 └── queries/                  # Directory containing the query IDs and image IDs for each scenario
-       ├── scenario01-example.csv
-       ├── scenario02-example.csv
-       └── scenario03-example.csv
+│      ├── scenario01.csv
+│      └── scenario02.csv
+└── query_scenarios.csv       # CSV file specifying evaluation scenarios
 ```
 
 Later in this guide, when we launch a Docker container from your computer (or the "host" machine), the `data` directory on your host machine will be mounted as a read-only directory in the container as `code_execution/data`. In the runtime, your code will then be able to access all the competition data at `code_execution/data`.
 
-#### What's in `data`
+If you're confused about what all these files are, please make sure to read the ["Procedure for test inference" section](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#inference_procedure) on the Code Submission Format page.
 
-Let's briefly review the contents of `data` and what they're used for:
+### The quickstart example
 
-* **`images`** directory contains all of the image files (.jpg).
-* **`metadata.csv`** is a CSV file containing metadata (image dimensions, viewpoint, etc) for each image.
-* **`databases`** directory contains a text file for each _scenario_. Each text file contains the image IDs for all images in its scenario _database_. For example, `scenario01-example.txt` might look something like this, where `train0123` is an image ID:
+An example `main.py` script is provided at [`submission_quickstart/main.py`](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/submission_src/main.py) for you to get started. You are free to copy it and modify as needed provided that you are otherwise adhering to the [competition rules](https://www.drivendata.org/competitions/96/beluga-whales/rules/). Your main focus in this competition will be on developing a model that can fit into the `predict` function such that it can produce good matches between the query and database images of beluga whales.
 
-    ```
-    train0123
-    train0321
-    train0333
-    ...
-    ```
-
-* **`queries`** directory contains a CSV file for each _scenario_. Each CSV file contains the query IDs and query _image_ IDs for each query in its scenario:
-
-    ```
-    query_id               query_image_id
-    scenario01-train1111   train1111
-    scenario01-train1112   train1112
-    scenario01-train1122   train1122
-    ...                    ...
-    ```
-
-The core task you will be evaluated on in this competition requires you to **generate image rankings for each query in each scenario.** This will be done during code execution using the `main.py` script, which iterates through each scenario and runs inference to generate your image rankings.
-
-Here is simplified pseudo-code showing what `main.py` does for illustrative purposes:
-
-```python
-submission = []
-
-for scenario in scenarios:
-   queries = load(f'/data/queries/{scenario}.csv')
-   database = load(f'/data/databases/{scenario}.txt')
-
-   for query in queries:
-      image_rankings = run_inference(query, database) # <--- your code here
-      submission.append(image_rankings)
-```
-
-An example `main.py` script is provided in this repository for you to get started. You are free to modify `main.py` as needed provided that you are otherwise adhering to the [competition rules](https://www.drivendata.org/competitions/96/beluga-whales/rules/). Your main focus in this competition will be on developing the `run_inference` command above (or a similar function you've defined) such that it can produce good matches between the query and database images of beluga whales.
-
-But we'll get around to all that in due time. For now, let's continue with the quickstart and generate a trivial submission of random predictions so that we can see the entire pipeline in action.
+But we'll get around to all that in due time. For now, let's continue with the quickstart and generate a trivial submission of arbitrary predictions so that we can see the entire pipeline in action.
 
 ### Run Make commands
 
@@ -133,9 +96,11 @@ make pack-quickstart
 make test-submission
 ```
 
-🎉 **Congratulations!** You've just completed your first test run for the BOEM Belugas competition. If this were a real submission, you would upload the `submission.zip` file from step 2 above to the competition [Submissions page](https://www.drivendata.org/competitions/96/beluga-whales/submissions/).
+🎉 **Congratulations!** You've just completed your first test run for the Where's Whale-do competition. If everything worked as expected, you should see a new file `submission/submission.csv` that has been generated.
 
-Finally, there's one last step that takes place at the end of code execution and which we haven't described yet: the `submission.csv` that is written out during code execution will get **scored** automatically using the [competition scoring metric](https://www.drivendata.org/competitions/96/beluga-whales/page/479/#performance_metric) to determine your rank on the leaderboard. We'll talk in more detail below about how you can also score your submissions locally (with the _publicly_ available labels) without using up your submissions budget.
+If you were ready to make a real submission to the competition, you would upload the `submission.zip` file from step 2 above to the competition [Submissions page](https://www.drivendata.org/competitions/96/beluga-whales/submissions/). The `submission.csv` that is written out during code execution will get **scored** automatically using the [competition scoring metric](https://www.drivendata.org/competitions/96/beluga-whales/page/479/#performance_metric) to determine your rank on the leaderboard.
+
+We'll talk in more detail below about how you can also score your submissions locally (with the _publicly_ available labels) without using up your submissions budget.
 
 ----
 
@@ -178,16 +143,14 @@ Let's walk through what you'll need to do, step-by-step. The overall process her
       adding: main.py (deflated 50%)
     ```
 
-6. **Launch an instance of the competition Docker image, running the same inference process that will take place in the official code execution runtime.** This will mount the requisite host directories on the Docker container, unzip `submission/submission.zip` into the root directory of the container, and then execute `main.py` to produce a CSV file with your image rankings at `submission/submission.csv`.
+6. **Test your submission by launching an instance of the competition Docker image, simulating the same inference process that will take place in the official code execution runtime.** This will mount the requisite host directories on the Docker container, unzip `submission/submission.zip` into the root directory of the container, and then execute `main.py` to produce a CSV file with your image rankings at `submission/submission.csv`.
 
    ```
    $ make test-submission
    ```
 
 
-
 > ⚠️ **Remember** that for local testing purposes, the `code_execution/data` directory is just a mounted version of what you have saved locally in this project's `data` directory. So you will just be using the publicly available training files for local testing. In the official code execution environment, `code_execution/data` will contain the _actual test data_, which no participants have access to, and this is what will be used to compute your score for the leaderboard.
-
 
 
 ### Logging
@@ -197,16 +160,18 @@ When you run `make test-submission` the logs will be printed to the terminal and
 
 ### Scoring your submission
 
-We will provide a [metric script](TBD) to calculate the competition metric in the same way scores will be calculated in the DrivenData platform. To score your submission:
+We have provided a scoring script as well as example ground truth labels for the example scenarios. You can find these in the [`scoring/` directory](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/scoring). You can use this script to calculate the comptition metric in the same way that it will be calculated on the DrivenData platform
+
+To score your submission:
 
 1. After running the above, verify that image rankings generated by your code are saved at `submission/submission.csv`.
 
-2. Make sure that the metadata CSV file is saved in `data/metadata.csv`. This file contains the labels that we'll use for scoring.
+2. You need a file containing ground truth labels that conforms to the ground truth format. See [relevant section](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#scoring_ground_truth) on the Code Submission Format page for details. We've provided an example [`scoring/example_labels.csv`](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/scoring/example_labels.csv) file that corresponds to the example scenarios.
 
-3. Run `scripts/metric.py` on your predictions:
+3. Run `scoring/score_submission.py` with the path to your predictions as the first argument and to the ground truth as the second:
+
     ```bash
-    # show usage instructions
-    $ python scripts/metric.py --help
+    $ python submissions/submission.csv scoring/example_labels.csv
     ```
 
 ---
