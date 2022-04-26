@@ -1,20 +1,51 @@
 from pathlib import Path
 
 import pandas as pd
-import typer
+
 
 ROOT_DIRECTORY = Path("/code_execution")
-PREDICTION_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
 DATA_DIRECTORY = ROOT_DIRECTORY / "data"
+OUTPUT_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
 
+
+def predict(query_image_id, database_image_ids):
+    raise NotImplementedError(
+        "This script is just a template. You should adapt it with your own code."
+    )
+    result_images = ...
+    scores = ...
+    return result_images, scores
 
 def main():
-    query_ids = ['Q00', 'Q00', 'Q00', 'Q01', 'Q01', 'Q02', 'Q02']
-    reference_ids = ['R00A', 'R00B', 'R00C', 'R01A', 'R01B', 'R02A', 'R02B']
-    scores = [1., .9, .8, 1., .9, 1., .9]
-    submission = pd.DataFrame({"query_id": query_ids, "reference_id": reference_ids, "score": scores})
-    submission.to_csv(PREDICTION_FILE, index=False)
+    scenarios_df = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv")
 
+    predictions = []
+
+    for scenario_row in scenarios_df.itertuples():
+
+        queries_df = pd.read_csv(DATA_DIRECTORY / scenario_row.queries_path)
+        database_df = pd.read_csv(DATA_DIRECTORY / scenario_row.database_path)
+
+        for query_row in queries_df.itertuples():
+            query_id = query_row.query_id
+            query_image_id = query_row.query_image_id
+            database_image_ids = database_df["database_image_id"].values
+
+            ### Prediction happens here ######
+            result_images, scores = predict(query_image_id, database_image_ids)
+            ##################################
+
+            for pred_image_id, score in zip(result_images, scores):
+                predictions.append(
+                    {
+                        "query_id": query_id,
+                        "database_image_id": pred_image_id,
+                        "score": score,
+                    }
+                )
+
+    predictions_df = pd.DataFrame(predictions)
+    predictions_df.to_csv(OUTPUT_FILE, index=False)
 
 if __name__ == "__main__":
-    typer.run(main)
+    main()
