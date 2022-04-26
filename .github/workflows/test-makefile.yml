@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Pull images, pack benchmark, test-submission
+    name: Pull images, pack quickstart, test-submission
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -22,9 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Test zipping submission_src
+      - name: Test zipping submission_quickstart
         run: |
-          make pack-submission
+          make pack-quickstart
 
       - name: Pull latest image and run submission in container
         run: |

@@ -131,7 +131,7 @@ Let's walk through what you'll need to do, step-by-step. The overall process her
     ```
 
 4. ⚙️ **Save all of your submission files, including the required `main.py` script, in the `submission_src` folder of the runtime repository.** This is where the real work happens.
-   * You are free to modify the `main.py` template we've provided, and you'll obviously want to add any code necessary to process the queries, cache results, and run inference. Just make sure that you adhere to the competition rules and you still produce a `submission.csv` in the correct format.
+   * You are free to modify the `main.py` template we've provided, and you'll obviously want to add any code necessary to process the queries, run inference, cache intermediate results as necessary, and write out your predictions. Just make sure that you adhere to the competition rules and you still produce a `submission.csv` in the correct format.
    * Also keep in mind that the runtime already contains a number of packages that might be useful for you ([cpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-cpu.yml) and [gpu](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/runtime/environment-gpu.yml) versions). If there are other packages you'd like added, see the section below on [updating runtime packages](#updating-runtime-packages).
    * Finally, make sure any model weights or other files you need are also saved in `submission_src`.
 
