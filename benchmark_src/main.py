@@ -16,7 +16,7 @@ DATA_DIRECTORY = ROOT_DIRECTORY / "data"
 
 class ImagesDataset(Dataset):
     """Reads in an image, transforms pixel values, and serves
-    a dictionary containing the image id, image tensors, and label.
+    a dictionary containing the image id and image tensors.
     """
 
     def __init__(self, metadata):
@@ -79,7 +79,9 @@ def main():
             top20 = pd.Series(sims, index=_db_embeddings.index).sort_values(0, ascending=False).head(20)
 
             # append result
-            qry_result = pd.DataFrame({"query_id": qry.query_id, "database_image_id": top20.index, "score": top20.values})
+            qry_result = pd.DataFrame(
+                {"query_id": qry.query_id, "database_image_id": top20.index, "score": top20.values}
+            )
             results.append(qry_result)
 
     submission = pd.concat(results)
