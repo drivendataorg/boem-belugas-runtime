@@ -52,5 +52,4 @@ jobs:
       - name: Push image to ACR
         if: github.ref == 'refs/heads/master'
         run: |
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$LATEST_TAG
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG --all-tags
