@@ -168,7 +168,13 @@ To score your submission:
 
 2. You need a file containing ground truth labels that conforms to the ground truth format. See [relevant section](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#scoring_ground_truth) on the Code Submission Format page for details. We've provided an example [`scoring/example_labels.csv`](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/scoring/example_labels.csv) file that corresponds to the example scenarios.
 
-3. Run `scoring/score_submission.py` with the path to your predictions as the first argument and to the ground truth as the second:
+3. Install the scoring script requirements
+
+    ```bash
+    $ pip install -r scoring/requirements.txt
+    ```
+
+4. Run `scoring/score_submission.py` with the path to your predictions as the first argument and to the ground truth as the second:
 
     ```bash
     $ python submissions/submission.csv scoring/example_labels.csv
