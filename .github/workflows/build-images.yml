@@ -4,9 +4,9 @@ name: Build and publish image
 on:
   push:
     branches: [master]
-    paths: ['runtime/**', '.github/workflows/build-image.yml']
+    paths: ['runtime/**', '.github/workflows/build-images.yml']
   pull_request:
-    paths: ['runtime/**', '.github/workflows/build-image.yml']
+    paths: ['runtime/**', '.github/workflows/build-images.yml']
 
 jobs:
   build:
