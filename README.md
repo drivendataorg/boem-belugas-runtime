@@ -160,7 +160,7 @@ When you run `make test-submission` the logs will be printed to the terminal and
 
 ### Scoring your submission
 
-We have provided a scoring script as well as example ground truth labels for the example scenarios. You can find these in the [`scoring/` directory](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/scoring). You can use this script to calculate the comptition metric in the same way that it will be calculated on the DrivenData platform
+We have provided a scoring script as well as example ground truth labels for the example scenarios. You can find these in the [`scoring/` directory](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/scoring). You can use this script to calculate the competition metric in the same way that it will be calculated on the DrivenData platform
 
 To score your submission:
 
@@ -177,7 +177,7 @@ To score your submission:
 4. Run `scoring/score_submission.py` with the path to your predictions as the first argument and to the ground truth as the second:
 
     ```bash
-    $ python submissions/submission.csv scoring/example_labels.csv
+    $ python scoring/score_submission.py submissions/submission.csv scoring/example_labels.csv
     ```
 
 ---
