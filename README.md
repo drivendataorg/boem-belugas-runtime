@@ -3,7 +3,8 @@
 
 # Where's Whale-do? : Code execution runtime
 
-![Python 3.9.7](https://img.shields.io/badge/Python-3.9.7-blue) [![Docker Image](https://img.shields.io/badge/Docker%20image-latest-green)](https://hub.docker.com/r/drivendata/noaa-competition/tags?page=1&name=latest)
+![Python 3.9.7](https://img.shields.io/badge/Python-3.9.7-blue)
+[![build](https://github.com/drivendataorg/boem-belugas-runtime/workflows/build-images.yml/badge.svg?branch=master)](https://github.com/drivendataorg/boem-belugas-runtime/actions/workflows/build-images.yml?query=branch%3Amaster)
 
 Welcome to the runtime repository for the [Where's Whale-do?](https://www.drivendata.org/competitions/96/beluga-whales/) beluga photo-identification challenge!
 

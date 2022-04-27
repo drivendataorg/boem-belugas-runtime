@@ -1,8 +1,8 @@
 name: condaenv
 channels:
-  - fastai
-  - nvidia
   - conda-forge
+  - nvidia
+  - fastai
 dependencies:
   - albumentations=1.0.3
   - cudatoolkit=11.1.74=h6bb024c_0
