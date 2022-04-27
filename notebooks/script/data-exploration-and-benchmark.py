@@ -301,9 +301,10 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make pack-benchmark')
 # This command simulates what happens during actual code execution, launching an instance of the official Docker image and running the same inference process that runs on the competition platform. The required host directories are mounted on the container, and the entrypoint script `main.py` is executed.
 # 
 # For this benchmark, the `main.py` script simply does the following:
-# * Precomputes embeddings for all images (both query and database images)
-# * Computes cosine similarities between each query and its database
-# * Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
+# 
+# 1. Precomputes embeddings for all images (both query and database images)
+# 2. Computes cosine similarities between each query and its database
+# 3. Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
 
 get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 
