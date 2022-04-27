@@ -47,6 +47,16 @@ def main():
     metadata = pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
     model = torch.load("model.pth")
 
+    # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
+    # benchmark example can run quickly when doing local testing. this subsetting step is not necessary for an actual
+    # code submission since all the images in the test environment metadata also belong to a query or database.
+    scenario_imgs = []
+    for row in query_scenarios.itertuples():
+        scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.queries_path).query_image_id.values)
+        scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values)
+    scenario_imgs = list(set(scenario_imgs))
+    metadata = metadata.loc[scenario_imgs]
+
     # instantiate dataset/loader and generate embeddings for all images
     dataset = ImagesDataset(metadata)
     dataloader = DataLoader(dataset, batch_size=16)
