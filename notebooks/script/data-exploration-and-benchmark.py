@@ -448,13 +448,10 @@ query_scenarios
 # 
 # First, celebrate a little bit if you feel like it 🎉. This is an achievement in itself. 
 # 
-# But you're probably more interested in knowing the mAP score that determines your place on the public leaderboard. Go over to the [Submissions](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) where you'll see something like this, except that we're sure you can do better than the benchmark!
+# But you're probably more interested in knowing the mAP score that determines your place on the public leaderboard. Go over to the [Submissions](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) page where you'll see something like this, except that we're sure you can do better than the benchmark!
 # 
 # ![mAP score](https://drivendata-public-assets.s3.amazonaws.com/boem-beluga-benchmark-score.jpg)
 # 
 # **That's it! You're on your way to creating your own code submission and helping to protect endangered beluga whale populations with machine learning.**
 # 
 # **Have fun! And happy building!**
-
-
-
