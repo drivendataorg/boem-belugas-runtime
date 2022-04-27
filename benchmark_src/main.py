@@ -57,7 +57,7 @@ def main():
     for row in query_scenarios.itertuples():
         scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.queries_path).query_image_id.values)
         scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values)
-    scenario_imgs = list(set(scenario_imgs))
+    scenario_imgs = sorted(set(scenario_imgs))
     metadata = metadata.loc[scenario_imgs]
 
     # instantiate dataset/loader and generate embeddings for all images
