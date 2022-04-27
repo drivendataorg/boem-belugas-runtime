@@ -50,7 +50,7 @@
 # If you're working off a clone of this [runtime repository](https://github.com/drivendataorg/boem-belugas-runtime), you should already have copies of the `databases`, `queries` and `query_scenarios.csv` files.
 
 # ### Explore the data
-# First, let's load a couple of the data files we just downloaded. Initially we are just going to be focused on the `metadata` file.
+# First, let's load a couple of the data files we just downloaded. Initially, we are just going to be focused on the `metadata` file.
 
 from pathlib import Path
 
