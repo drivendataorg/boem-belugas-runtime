@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Welcome
+# ![baby beluga](https://drivendata-public-assets.s3.amazonaws.com/boem-beluga-pod.jpeg)
+# 
+# Welcome to the benchmark notebook for the **Where's Whale-do?** competition! 
+# 
+# If you are just getting started, first checkout the competition [homepage](https://www.drivendata.org/competitions/96/beluga-whales/) and [problem description](https://www.drivendata.org/competitions/96/beluga-whales/page/479/).
 
-# Welcome to the **Where's Whale-do?** competition!
+# # Where's Whale-do?
+# 
+# **For this competition, your goal is to identify which images in a database contain the same individual beluga whale seen in a query image.**
+# 
+# You will be provided with a set of queries, each one specifying a single query image of a beluga whale and a corresponding database to search for matches to that same individual. The database will include images of both matching and non-matching belugas. This is a learning-to-rank information retrieval task.
 # 
 # This notebook covers two main areas:
 # 
