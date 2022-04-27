@@ -138,7 +138,7 @@ display_image_dimensions(viewpoint_metadata, title="lateral images")
 # #### Matches
 # As noted above, we can use the `whale_id` data to identify images of the same whale.
 # 
-# Typically we'll have between 2-6 distinct images of most whales. But in some cases we may have just one image of a given whale, and in other cases we have many more (>100).
+# Typically, we'll have between 2–6 distinct images of most whales. But in some cases we may have just one image of a given whale, and in other cases we have many more (>100).
 
 whale_id_counts = metadata.groupby("whale_id").size()
 
