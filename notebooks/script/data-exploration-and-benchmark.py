@@ -159,7 +159,7 @@ whales_with_5_top_images = whale_id_counts_top[whale_id_counts_top >= 5]
 whales_with_5_top_images.index
 
 
-# The marks around the blowhole of this beluga are probably its most identifiable feature.
+# The indentations around the blowhole of this beluga are probably its most identifiable feature.
 
 whale_id = whales_with_5_top_images.sample(1, random_state=1).index[0]
 display_images("top", metadata=metadata[metadata.whale_id == whale_id])
@@ -206,7 +206,7 @@ print(whale_id)
 # ├── notebooks/      
 # └── ...             
 # ```
-# Think of this ResNet50 model as a (vastly inferior) placeholder for the model you will _eventually_ train yourself. For now, we're assuming that you've done all that training already and are ready to submit your code to the platform for scoring.
+# Think of this ResNet34 model as a (vastly inferior) placeholder for the model you will _eventually_ train yourself. For now, we're assuming that you've done all that training already and are ready to submit your code to the platform for scoring.
 
 import torch
 import torchvision.models as models
@@ -224,14 +224,14 @@ torch.save(model, BENCHMARK_SRC / "model.pth")
 # make pack-benchmark
 # make test-submission
 # ```
-# These are defined in the project `Makefile` [(link)](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/Makefile). We'll walk through what each one does now.
+# These are defined in the project `Makefile` [here](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/Makefile). We'll walk through what each one does now.
 
 # ### **`make pull`** 
 # Pulls the official version of the competition docker image from the [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/). Having a local version of the competition image allows you to test your submission using the same image that is used during code execution.
 # 
-#    There are both CPU and GPU versions of this image available. The `make` command will check whether `nvidia-smi` is available on your machine and then pull the GPU version if it is. You can also set this manually by prefixing the command with the `CPU_OR_GPU` variable like so: `CPU_OR_GPU=gpu make pull`.
-
-# #### ToDo: prune the existing images and rerun
+# There are both CPU and GPU versions of this image available. The `make` command will check whether `nvidia-smi` is available on your machine and then pull the GPU version if it is. You can also set this manually by prefixing the command with the `CPU_OR_GPU` variable like so: `CPU_OR_GPU=gpu make pull`.
+#    
+# > **Note:** This command can take a little while to run the first time you pull the image. But after that it will be relatively quick since you'll have all the layers cached locally.
 
 get_ipython().system('cd {PROJ_DIRECTORY} && make pull')
 
@@ -292,7 +292,9 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 # Take a quick look at [**`benchmark_src/main.py`**](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/benchmark_src/main.py) to get the overall idea, and then we'll review a couple areas worth highlighting.
 
 # ### Scenarios are defined in `data/query_scenarios.csv`
-# Recall that during code execution your code will be tested on 10 held-out scenarios. As with the example scenarios (see below), each scenario is defined by a set of query images (e.g. `queries/scenario01.csv`) and a database (`databases/scenario01.csv`).
+# Recall that your code will be tested on 10 held-out scenarios during actual code execution. For local testing, you can use the provided example scenarios CSV (`data/query_scenarios.csv`) which will be identical in structure to the one used on the platform. 
+# 
+# For both test and example scenarios, each scenario is defined by a set of query images (e.g. `queries/scenario01.csv`) and a database (e.g. `databases/scenario01.csv`).
 
 query_scenarios
 
@@ -308,7 +310,9 @@ query_scenarios
 #     for row in query_scenarios.itertuples():
 #         # load query df and database images; subset embeddings to this scenario's database
 #         qry_df = pd.read_csv(DATA_DIRECTORY / row.queries_path)
-#         db_img_ids = pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values
+#         db_img_ids = pd.read_csv(
+#             DATA_DIRECTORY / row.database_path
+#         ).database_image_id.values
 #         db_embeddings = embeddings.loc[db_img_ids]
 # ```
 
@@ -325,7 +329,7 @@ query_scenarios
 # ```
 # Again, you don't need to do it this way. Feel free yo approach this in your own way, so long as you are still following the competition rules.
 
-# ### A valid CSV submission
+# ### Produce a valid CSV submission
 # Ultimately, the goal of your _code submission_ is to automatically generate a valid _CSV submission_ which is then scored using [mean average precision (mAP)](https://www.drivendata.org/competitions/96/beluga-whales/page/479/#performance_metric). Your **`main.py`** script will need to write your predictions to a `submission/submission.csv` with the [correct format]([here](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#prediction_format)).
 # 
 # The CSV file must contain image rankings for all test queries across all scenarios, concatenated into the single long format shown below. The CSV file will contain 3 columns: `query_id`, `database_image_id` and `score`. You may return up to 20 ranked database images for each query.
@@ -383,3 +387,25 @@ query_scenarios
 #     </tr>
 #   </tbody>
 # </table>
+
+# ## Submitting to platform
+# We're almost done. Assuming that our test run completed and the `submission.csv` looks correct, it's time to submit the code on the platform.
+# 
+# * Go to the [competition submissions page](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) and upload your `submission/submission.zip`.
+# * Please be patient while your submission is uploaded and executed. Your job may be queued if other jobs are still pending.
+# * You can track the status of your submission on the [Code Execution Status](https://www.drivendata.org/competitions/96/submissions/code/) page. Logs will become available once the submission begins processing. To see them click on "View Logs".
+# * Submissions have up to 3 hours to complete. Again, please be patient.
+# 
+# If code execution completes successfully, you will see something like this on the [Code Execution Status](https://www.drivendata.org/competitions/96/submissions/code/) page:
+# 
+# ![code execution completed](https://drivendata-public-assets.s3.amazonaws.com/boem-beluga-benchmark-code-status.jpg)
+# 
+# First celebrate a little bit, if you feel like it 🎉. This is an achievement in itself. 
+# 
+# But you're probably more interested in knowing the mAP score that determines your place on the public leaderboard. Go over to the [Submissions](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) where you'll see something like this, except that we're sure you can do better than the benchmark!
+# 
+# ![mAP score](https://drivendata-public-assets.s3.amazonaws.com/boem-beluga-benchmark-score.jpg)
+# 
+# **That's it! You're on your way to creating your own code submission and helping to protect endangered beluga whale populations with machine learning.**
+# 
+# **Have fun! And happy building!**
