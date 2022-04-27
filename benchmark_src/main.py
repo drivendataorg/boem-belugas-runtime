@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from loguru import logger
 import pandas as pd
 from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
@@ -42,9 +43,11 @@ class ImagesDataset(Dataset):
 
 
 def main():
+    logger.info("Starting main script")
     # load test set data and pretrained model
     query_scenarios = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv", index_col="scenario_id")
     metadata = pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
+    logger.info("Loading pre-trained model")
     model = torch.load("model.pth")
 
     # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
@@ -63,13 +66,16 @@ def main():
     embeddings = []
     model.eval()
 
+    logger.info("Precomputing embeddings")
     for batch in tqdm(dataloader, total=len(dataloader)):
         batch_embeddings = model(batch["image"])
         batch_embeddings_df = pd.DataFrame(batch_embeddings.detach().numpy(), index=batch["image_id"])
         embeddings.append(batch_embeddings_df)
 
     embeddings = pd.concat(embeddings)
+    logger.info(f"Precomputed embeddings for {len(embeddings)} images")
 
+    logger.info("Generating image rankings")
     # process all scenarios
     results = []
     for row in query_scenarios.itertuples():
@@ -94,6 +100,7 @@ def main():
             )
             results.append(qry_result)
 
+    logger.info(f"Writing predictions file to {PREDICTION_FILE}")
     submission = pd.concat(results)
     submission.to_csv(PREDICTION_FILE, index=False)
 
