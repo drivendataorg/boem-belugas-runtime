@@ -167,29 +167,29 @@ whales_with_5_top_images = whale_id_counts_top[whale_id_counts_top >= 5]
 whales_with_5_top_images.index
 
 
-# The indentations around the blowhole of this beluga are probably its most identifiable feature.
-
 whale_id = whales_with_5_top_images.sample(1, random_state=1).index[0]
 display_images("top", metadata=metadata[metadata.whale_id == whale_id])
 print(whale_id)
 
 
-# This beluga has some light scratches near the top of its dorsal fin, but they are very subtle.
+# The indentations around the blowhole of this beluga (whale206, above) are probably its most identifiable feature.
 
 whale_id = whales_with_5_top_images.sample(1, random_state=2).index[0]
 display_images("top", metadata=metadata[metadata.whale_id == whale_id])
 print(whale_id)
 
 
-# The scratches along the back and some distinctive features around the blowhole distinguish this beluga.
+# This beluga (whale010) has some light scratches near the top of its dorsal fin, but they are very subtle.
 
 whale_id = whales_with_5_top_images.sample(1, random_state=3).index[0]
 display_images("top", metadata=metadata[metadata.whale_id == whale_id])
 print(whale_id)
 
 
+# The scratches along the back and some distinctive features around the blowhole distinguish this beluga (whale145).
+
 # #### Cropped images
-# You may have noticed above that some images contain triangular regions of white space. This occurs because the original photos of these belugas are taken with a much wider field of view that may contain multiple belugas, before being passed through an auto-detection algorithm that identifies each individual beluga whale and draws a bounding box around it. 
+# You may have noticed that some images contain triangular regions of white space. This occurs because the original photos of these belugas are taken with a much wider field of view that may contain multiple belugas, before being passed through an auto-detection algorithm that identifies each individual beluga whale and draws a bounding box around it. 
 # 
 # When these bounding boxes happen to overlap with the edges of the original photo, the region of the box for which we have no data (it is beyond the original image's border) are encoded as white pixels.
 
@@ -283,7 +283,7 @@ get_ipython().system('docker images')
 get_ipython().system('cd {PROJ_DIRECTORY} && make pack-benchmark')
 
 
-# > **Note:** The `make pack-benchmark` command will check to see if you already have a `submission/submission.zip` and error if you do, so as not to overwrite existing work. If you already have this file, you'll need to manually remove it before running this command.
+# > **Note:** The `make pack-benchmark` command will check to see if you already have a `submission/submission.zip` and error if you do, so as not to overwrite existing work. If you already have this file, you'll need to manually remove it before running the command.
 
 # After running the above command, we should now have a new **`submission/submission.zip`**.
 # ```
@@ -309,11 +309,11 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 
 
 # ### **`main.py`**
-# As you may recall from the [competition website](https://www.drivendata.org/competitions/96/beluga-whales/page/482/) this is the entrypoint script, a required file that is going to be executed during code execution.
+# As you may recall from the [competition website](https://www.drivendata.org/competitions/96/beluga-whales/page/482/), `main.py` is the entrypoint script, a required file that is going to be executed during code execution.
 # 
-# As such, it contains all the logic needed to read in the competition data, process each scenario, and generate a valid CSV file for scoring.
+# You will need to make sure it contains all the logic needed to read in the competition data, process each scenario, and generate a valid CSV file for scoring. 
 # 
-# Take a quick look at [**`benchmark_src/main.py`**](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/benchmark_src/main.py) to get the overall idea, and then we'll review a couple areas worth highlighting.
+# Take a quick look at [**`benchmark_src/main.py`**](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/benchmark_src/main.py) to get a sense for how it is used in this benchmark, and then we'll review a couple areas worth highlighting.
 
 # #### Scenarios are defined in `data/query_scenarios.csv`
 # The `query_scenarios.csv` contains paths to the query and database files that define each scenario. For local testing, we're just going to use the 2 small example scenarios that are provided with this repository. 
@@ -345,7 +345,7 @@ query_scenarios
 # #### The query set is a subset of the database for some scenarios
 # In some cases, the query image may also be a member of the database. Since including the query image in your image rankings would be invalid, you may need to remove the query image from the database before running inference, or handle this issue in some other way.
 # 
-# The way this is handled in the benchmark example is to simply drop the query image embeddings from the database embeddings before computing similarities:
+# The way it's handled in this benchmark example is to simply drop the query image embeddings from the database embeddings before computing similarities:
 # ```python
 #         # predict matches for each query in this scenario
 #         for qry in qry_df.itertuples():
@@ -353,7 +353,7 @@ query_scenarios
 #             qry_embedding = embeddings.loc[[qry.query_image_id]]
 #             _db_embeddings = db_embeddings.drop(qry.query_image_id, errors='ignore')
 # ```
-# Again, you don't need to do it this way. Feel free to approach this in your own way, so long as you are still following the competition rules.
+# Again, you don't need to do it this way. Feel free to approach it differently, so long as you are still following the competition rules.
 
 # #### Produce a valid CSV submission
 # Ultimately, the goal of your _code submission_ is to automatically generate a valid _CSV submission_ which is then scored using [mean average precision (mAP)](https://www.drivendata.org/competitions/96/beluga-whales/page/479/#performance_metric). Your **`main.py`** script will need to write your predictions to a `submission/submission.csv` with the [correct format](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#prediction_format).
@@ -362,71 +362,64 @@ query_scenarios
 # 
 # The `query_id` value should match the identifier from the `queries/scenario##.csv` file, and the `database_image_id` should be the `image_id` of the image you are returning for that query. The score should be a confidence score that is a floating point number in the range [0.0, 1.0].
 # <table border="1" class="dataframe">
-#   <thead>
-#     <tr style="text-align: right;">
-#       <th></th>
-#       <th>database_image_id</th>
-#       <th>score</th>
-#     </tr>
-#     <tr>
-#       <th>query_id</th>
-#       <th></th>
-#       <th></th>
-#     </tr>
-#   </thead>
 #   <tbody>
 #     <tr>
-#       <th>scenario01-train2893</th>
+#       <td>query_id</td>
+#       <td>database_image_id</td>
+#       <td>score</td>
+#     </tr>
+#     <tr>
+#       <td>scenario01-train2893</td>
 #       <td>train2183</td>
 #       <td>0.818286</td>
 #     </tr>
 #     <tr>
-#       <th>scenario01-train2893</th>
+#       <td>scenario01-train2893</td>
 #       <td>train0641</td>
 #       <td>0.818231</td>
 #     </tr>
 #     <tr>
-#       <th>scenario01-train2893</th>
+#       <td>scenario01-train2893</td>
 #       <td>train1718</td>
 #       <td>0.813075</td>
 #     </tr>
 #     <tr>
-#       <th>scenario01-train2893</th>
+#       <td>scenario01-train2893</td>
 #       <td>train4574</td>
 #       <td>0.793446</td>
 #     </tr>
 #     <tr>
-#       <th>scenario01-train2893</th>
+#       <td>scenario01-train2893</td>
 #       <td>train1734</td>
 #       <td>0.789981</td>
 #     </tr>
 #     <tr>
-#       <th>...</th>
+#       <td>...</td>
 #       <td>...</td>
 #       <td>...</td>
 #     </tr>
 #     <tr>
-#       <th>scenario02-train0855</th>
+#       <td>scenario02-train0855</td>
 #       <td>train1578</td>
 #       <td>0.321382</td>
 #     </tr>
 #     <tr>
-#       <th>scenario02-train0855</th>
+#       <td>scenario02-train0855</td>
 #       <td>train0750</td>
 #       <td>0.290119</td>
 #     </tr>
 #     <tr>
-#       <th>scenario02-train0855</th>
+#       <td>scenario02-train0855</td>
 #       <td>train1997</td>
 #       <td>0.282616</td>
 #     </tr>
 #     <tr>
-#       <th>scenario02-train0855</th>
+#       <td>scenario02-train0855</td>
 #       <td>train0369</td>
 #       <td>0.270922</td>
 #     </tr>
 #     <tr>
-#       <th>scenario02-train0855</th>
+#       <td>scenario02-train0855</td>
 #       <td>train0358</td>
 #       <td>0.246468</td>
 #     </tr>
@@ -434,7 +427,7 @@ query_scenarios
 # </table>
 # 
 
-# ### Submitting to platform
+# ### Submitting to the platform
 # We're almost done. Assuming that our test run completed and the `submission.csv` looks correct, it's time to submit the code on the platform.
 # 
 # * Go to the [competition submissions page](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) and upload your `submission/submission.zip`.
@@ -446,7 +439,7 @@ query_scenarios
 # 
 # ![code execution completed](https://drivendata-public-assets.s3.amazonaws.com/boem-beluga-benchmark-code-status.jpg)
 # 
-# First, celebrate a little bit if you feel like it 🎉. This is an achievement in itself. 
+# First, celebrate a little bit if you feel like it 🎉. This is an achievement in itself!
 # 
 # But you're probably more interested in knowing the mAP score that determines your place on the public leaderboard. Go over to the [Submissions](https://www.drivendata.org/competitions/96/beluga-whales/submissions/) page where you'll see something like this, except that we're sure you can do better than the benchmark!
 # 
