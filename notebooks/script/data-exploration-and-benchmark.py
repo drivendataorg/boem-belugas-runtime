@@ -203,7 +203,7 @@ metadata = metadata.assign(timestamp=pd.to_datetime(metadata.timestamp))
 
 
 def get_duration_mins(df):
-    return (df._timestamp.max() - df._timestamp.min()).seconds / 60
+    return (df.timestamp.max() - df.timestamp.min()).seconds / 60
 
 encounter_durations = metadata.groupby('encounter_id').apply(get_duration_mins)
 encounter_durations.plot(kind='hist', bins=range(0, int(encounter_durations.max()+1)), logy=True)
@@ -304,8 +304,6 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make pack-benchmark')
 # * Precomputes embeddings for all images (both query and database images)
 # * Computes cosine similarities between each query and its database
 # * Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
-# 
-# It takes a little while for this to complete, so you may want to do something else for a little while, or you can read on to see what's going on in the crucial **`main.py`** script...
 
 get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 
