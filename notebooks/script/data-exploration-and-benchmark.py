@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Welcome
+# # Welcome
 
+# Welcome to the **Where's Whale-do?** competition!
+# 
+# This notebook covers two main areas:
+# 
+# - **Section 1. Data exploration**: An introduction to the beluga images dataset, including examples of the different image types and visual features to be aware of.
+# 
+# - **Section 2. Running the benchmark**: A demonstration of how to run the benchmark example and produce a valid code submission.
 
-
+# # Section 1: Data exploration
 
 # ## Download the data
 # 
@@ -35,7 +42,7 @@
 # If you're working off a clone of this [runtime repository](https://github.com/drivendataorg/boem-belugas-runtime), you should already have copies of the `databases`, `queries` and `query_scenarios.csv` files.
 
 # ## Explore the data
-# First, let's load the metadata file.
+# First, let's load a couple of the data files we just downloaded. Initially we are just going to be focused on the `metadata` file.
 
 from pathlib import Path
 
@@ -45,6 +52,7 @@ PROJ_DIRECTORY = Path.cwd().parent
 DATA_DIRECTORY = PROJ_DIRECTORY / "data"
 
 metadata = pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
+query_scenarios = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv", index_col="scenario_id")
 
 
 # ### Look at some sample images
@@ -95,7 +103,7 @@ print(f"n images:    {len(metadata)}")
 print(f"n whale IDs: {metadata.whale_id.nunique()}")
 
 
-# #### Image dimensions
+# ### Image dimensions
 # The height and width of the images vary. "Top" images tend to be "tall", while lateral images tend to be "wide". Let's take a quick look at the distribution of image dimensions.
 
 def display_image_dimensions(metadata, title=None):
@@ -119,7 +127,7 @@ viewpoint_metadata = metadata[metadata.viewpoint != "top"]
 display_image_dimensions(viewpoint_metadata, title="lateral images")
 
 
-# #### Matches
+# ### Matches
 # As noted above, we can use the `whale_id` data to identify images of the same whale.
 # 
 # Typically we'll have between 2-6 distinct images of most whales. But in some cases we may have just one image of a given whale, and in other cases we have many more (>100).
@@ -172,19 +180,206 @@ display_images("top", metadata=metadata[metadata.whale_id == whale_id])
 print(whale_id)
 
 
-# #### Cropped images
+# ### Cropped images
 # You may have noticed above that some images contain triangular regions of white space. This occurs because the original photos of these belugas are taken with a much wider field of view that may contain multiple belugas, before being passed through an auto-detection algorithm that identifies each individual beluga whale and draws a bounding box around it. 
 # 
 # When these bounding boxes happen to overlap with the edges of the original photo, the region of the box for which we have no data (it is beyond the original image's border) are encoded as white pixels.
 
+# # Section 2: Benchmark Demo
+# Now that we've had a chance to get familiar with the data, it's time to walk through the steps for creating a competition submission.
+# 
+# This is a **code submission competition**, so our focus for now will be on creating that submission in the correct format, and less so on the quality of the model itself.
+# 
+# If you haven't already read through the following resources, now would be a great time to do that:
+# * [Code Submission Format page](https://www.drivendata.org/competitions/96/beluga-whales/page/482/): An introduction to the code submission setup and how to make a valid submission.
+# * [Runtime Repository README](https://github.com/drivendataorg/boem-belugas-runtime): Details on the competition runtime and how to use this repository effectively.
+
+# ## Download a pretrained model
+# We'll assume that most if not all participants are going to use a deep learning model for this task, and we'll rely on PyTorch in this example.
+# 
+# Let's begin by downloading a popular pretrained model (we chose ResNet34 but it could be almost anything), and saving it to the **`benchmark_src`** directory. This is the directory that we'll be packaging up and submitting as a zip archive on the competition website later in this example.
+# 
+# ```
+# boem-belugas-runtime/
+# ├── benchmark_src/      <----
+# ├── data/      
+# ├── notebooks/      
+# └── ...             
+# ```
+# Think of this ResNet50 model as a (vastly inferior) placeholder for the model you will _eventually_ train yourself. For now, we're assuming that you've done all that training already and are ready to submit your code to the platform for scoring.
+
+import torch
+import torchvision.models as models
+
+BENCHMARK_SRC = PROJ_DIRECTORY / "benchmark_src"
+
+model = models.resnet34(pretrained=True)
+torch.save(model, BENCHMARK_SRC / "model.pth")
 
 
+# ## 3 Commands
+# To run and test the benchmark example, you just need to execute the following 3 commands:
+# ```bash
+# make pull
+# make pack-benchmark
+# make test-submission
+# ```
+# These are defined in the project `Makefile` [(link)](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/Makefile). We'll walk through what each one does now.
+
+# ### **`make pull`** 
+# Pulls the official version of the competition docker image from the [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/). Having a local version of the competition image allows you to test your submission using the same image that is used during code execution.
+# 
+#    There are both CPU and GPU versions of this image available. The `make` command will check whether `nvidia-smi` is available on your machine and then pull the GPU version if it is. You can also set this manually by prefixing the command with the `CPU_OR_GPU` variable like so: `CPU_OR_GPU=gpu make pull`.
+
+# #### ToDo: prune the existing images and rerun
+
+get_ipython().system('cd {PROJ_DIRECTORY} && make pull')
 
 
+# You should now have a local copy of the docker image, which you can verify by running:
+
+get_ipython().system('docker images')
 
 
+# ### **`make pack-benchmark`** 
+# This command simply goes to your `benchmark_src` directory, zips the contents, and writes the zip archive to `submission/submission.zip`.
+# 
+# Since we already downloaded a model above, the `benchmark_src` directory should look like this:
+# ```
+# boem-belugas-runtime/
+# └── benchmark_src/
+#     ├── main.py
+#     └── model.pth
+# ```
+
+# (We'll talk about the `main.py` file in more detail further below.)
+
+get_ipython().system('cd {PROJ_DIRECTORY} && make pack-benchmark')
 
 
+# > **Note:** The `make pack-benchmark` command will check to see if you already have a `submission/submission.zip` and error if you do, so as not to overwrite existing work. If you already have this file, you'll need to manually remove it before running this command.
+
+# After running the above command, we should now have a new **`submission/submission.zip`**.
+# ```
+# boem-belugas-runtime/
+# ├── benchmark_src/
+# │   ├── main.py
+# │   └── model.pth
+# └── submission/
+#     └── submission.zip   <----    
+# ```
+
+# This is the file that we will eventually upload to the competition platform for code execution, but before doing that, we want to test it locally.
+
+# ### **`make test-submission`** 
+# This command simulates what happens during actual code execution, launching an instance of the official Docker image and running the same inference process that runs on the competition platform. The required host directories are mounted on the container, and the entrypoint script `main.py` is executed.
+# 
+# For this benchmark, the `main.py` script simply does the following:
+# * Precomputes embeddings for all images (both query and database images)
+# * Computes cosine similarities between each query and its database
+# * Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
+# 
+# It takes a little while for this to complete, so you may want to do something else for a little while, or you can read on to see what's going on in the crucial **`main.py`** script...
+
+get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 
 
+# ## **`main.py`**
+# As you may recall from the [competition website](https://www.drivendata.org/competitions/96/beluga-whales/page/482/) this is the entrypoint script, a required file that is going to be executed during code execution.
+# 
+# As such, it contains all the logic needed to read in the competition data, process each scenario, and generate a valid CSV file for scoring.
+# 
+# Take a quick look at [**`benchmark_src/main.py`**](https://github.com/drivendataorg/boem-belugas-runtime/tree/master/benchmark_src/main.py) to get the overall idea, and then we'll review a couple areas worth highlighting.
 
+# ### Scenarios are defined in `data/query_scenarios.csv`
+# Recall that during code execution your code will be tested on 10 held-out scenarios. As with the example scenarios (see below), each scenario is defined by a set of query images (e.g. `queries/scenario01.csv`) and a database (`databases/scenario01.csv`).
+
+query_scenarios
+
+
+# Your code will need to process each query in each of these scenarios in order to generate a valid submission for scoring. In this benchmark example, the relevant parts of the code look like this:
+# ```python
+# def main():
+#     # load test set data and pretrained model
+#     query_scenarios = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv", index_col="scenario_id")
+#     ...
+#     # process all scenarios
+#     results = []
+#     for row in query_scenarios.itertuples():
+#         # load query df and database images; subset embeddings to this scenario's database
+#         qry_df = pd.read_csv(DATA_DIRECTORY / row.queries_path)
+#         db_img_ids = pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values
+#         db_embeddings = embeddings.loc[db_img_ids]
+# ```
+
+# ### The query set is a subset of the database for some scenarios
+# In some cases, the query image may also be a member of the database. Since including the query image in your image rankings would be invalid, you may need to remove the query image from the database before running inference, or handle this issue in some other way.
+# 
+# The way this is handled in the benchmark example is to simply drop the query image embeddings from the database embeddings before computing similarities:
+# ```python
+#         # predict matches for each query in this scenario
+#         for qry in qry_df.itertuples():
+#             # get embeddings; drop query from database, if it exists
+#             qry_embedding = embeddings.loc[[qry.query_image_id]]
+#             _db_embeddings = db_embeddings.drop(qry.query_image_id, errors='ignore')
+# ```
+# Again, you don't need to do it this way. Feel free yo approach this in your own way, so long as you are still following the competition rules.
+
+# ### A valid CSV submission
+# Ultimately, the goal of your _code submission_ is to automatically generate a valid _CSV submission_ which is then scored using [mean average precision (mAP)](https://www.drivendata.org/competitions/96/beluga-whales/page/479/#performance_metric). Your **`main.py`** script will need to write your predictions to a `submission/submission.csv` with the [correct format]([here](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#prediction_format)).
+# 
+# The CSV file must contain image rankings for all test queries across all scenarios, concatenated into the single long format shown below. The CSV file will contain 3 columns: `query_id`, `database_image_id` and `score`. You may return up to 20 ranked database images for each query.
+# 
+# The `query_id` value should match the identifier from the `queries/scenario##.csv` file, and the `database_image_id` should be the `image_id` of the image you are returning for that query. The score should be a confidence score that is a floating point number in the range [0.0, 1.0].
+
+# <table border="1" class="dataframe">
+#   <thead>
+#     <tr style="text-align: right;">
+#       <th>query_id</th>
+#       <th>database_image_id</th>
+#       <th>score</th>
+#     </tr>
+#   </thead>
+#   <tbody>
+#     <tr>
+#       <th>scenario01-train2893</th>
+#       <td>train0010</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>scenario01-train2893</th>
+#       <td>train0019</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>scenario01-train2893</th>
+#       <td>train0072</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>...</th>
+#       <td>...</td>
+#       <td>...</td>
+#     </tr>
+#     <tr>
+#       <th>scenario01-train0829</th>
+#       <td>train0010</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>scenario01-train0829</th>
+#       <td>train0019</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>scenario01-train0829</th>
+#       <td>train0072</td>
+#       <td>0.5</td>
+#     </tr>
+#     <tr>
+#       <th>...</th>
+#       <td>...</td>
+#       <td>...</td>
+#     </tr>
+#   </tbody>
+# </table>
