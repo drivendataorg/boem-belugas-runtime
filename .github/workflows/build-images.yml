@@ -29,7 +29,9 @@ jobs:
             --build-arg CPU_OR_GPU=${{ matrix.proc }} \
             --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG \
             --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$LATEST_TAG
-          echo "----------------"
+
+      - name: Check image size
+        run: |
           docker image list ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE
 
       - name: Tests packages in container

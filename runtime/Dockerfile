@@ -62,6 +62,7 @@ RUN echo "Installing Miniforge..." \
 COPY environment-${CPU_OR_GPU}.yml /home/${RUNTIME_USER}/environment.yml
 RUN mamba env create --name ${CONDA_ENV} -f /home/${RUNTIME_USER}/environment.yml  \
     && mamba clean -afy \
+    && conda run pip cache purge \
     && rm /home/${RUNTIME_USER}/environment.yml \
     && find ${CONDA_DIR} -follow -type f -name '*.a' -delete \
     && find ${CONDA_DIR} -follow -type f -name '*.pyc' -delete \
