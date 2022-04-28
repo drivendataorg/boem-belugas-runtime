@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.0-base-ubuntu20.04
+FROM nvidia/cuda:11.0.3-base-ubuntu20.04
 # adapated from build file for pangeo images
 # https://github.com/pangeo-data/pangeo-docker-images
 
@@ -34,6 +34,7 @@ RUN echo "Creating ${RUNTIME_USER} user..." \
 # Install base packages
 ARG DEBIAN_FRONTEND=noninteractive
 COPY ./apt.txt /home/${RUNTIME_USER}
+RUN rm -f /etc/apt/sources.list.d/cuda.list && rm -f /etc/apt/sources.list.d/nvidia-ml.list
 RUN echo "Installing base packages..." \
     && apt-get update --fix-missing \
     && apt-get install -y apt-utils 2> /dev/null \
@@ -61,6 +62,7 @@ RUN echo "Installing Miniforge..." \
 COPY environment-${CPU_OR_GPU}.yml /home/${RUNTIME_USER}/environment.yml
 RUN mamba env create --name ${CONDA_ENV} -f /home/${RUNTIME_USER}/environment.yml  \
     && mamba clean -afy \
+    && conda run pip cache purge \
     && rm /home/${RUNTIME_USER}/environment.yml \
     && find ${CONDA_DIR} -follow -type f -name '*.a' -delete \
     && find ${CONDA_DIR} -follow -type f -name '*.pyc' -delete \
