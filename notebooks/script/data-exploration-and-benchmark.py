@@ -13,7 +13,7 @@
 # 
 # The goal of this $35,000 challenge is to help wildlife researchers accurately match beluga whale individuals from photographic images. Accelerated and scalable photo-identification is critical to population assessment, management, and protection of this endangered whale population.
 # 
-# **For this competition, your goal is to identify which images in a database contain the same individual beluga whale seen in a query image.**
+# **For this competition, you will be identifying which images in a database contain the same individual beluga whale seen in a query image.**
 # 
 # You will be provided with a set of queries, each one specifying a single image of a beluga whale and a corresponding database to search for matches to that same individual. The database will include images of both matching and non-matching belugas. This is a learning-to-rank information retrieval task.
 # 
@@ -64,6 +64,7 @@ import pandas as pd
 
 PROJ_DIRECTORY = Path.cwd().parent
 DATA_DIRECTORY = PROJ_DIRECTORY / "data"
+SUBM_DIRECTORY = PROJ_DIRECTORY / "submission"
 
 metadata = pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
 query_scenarios = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv", index_col="scenario_id")
@@ -120,26 +121,23 @@ print(f"n whale IDs: {metadata.whale_id.nunique()}")
 # #### Image dimensions
 # The height and width of the images vary. "Top" images tend to be "tall", while lateral images tend to be "wide". Let's take a quick look at the distribution of image dimensions.
 
-def display_image_dimensions(metadata, title=None):
-    lim = max(metadata.width.max(), metadata.height.max())*1.1
-    plt.figure(figsize=(3,3))
-    plt.scatter(metadata.width, metadata.height, alpha=0.1)
-    plt.ylim(0,lim)
-    plt.ylabel('image height (pixels)')
-    plt.xlim(0,lim)
-    plt.xlabel('image width (pixels)')
-    plt.title(title)
+def plot_image_dims(metadata, ax, title=None, ylabel=True):
+    lim = max(metadata.width.max(), metadata.height.max())*1.1    
+    ax.scatter(metadata.width, metadata.height, s=2, alpha=0.3)
+    ax.set_ylim(0,lim)
+    ax.set_xlim(0,lim)
+    ax.set_xlabel('image width (pixels)')
+    if ylabel:
+        ax.set_ylabel('image height (pixels)')
+    ax.set_aspect('equal')
+    ax.set_title(title)
+
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(8,4))
+plot_image_dims(metadata[metadata.viewpoint == "top"], axes[0], title="top images")
+plot_image_dims(metadata[metadata.viewpoint != "top"], axes[1], title="lateral images", ylabel=False)
 
 
-viewpoint_metadata = metadata[metadata.viewpoint == "top"]
-display_image_dimensions(viewpoint_metadata, title="top images")
-
-
-# Note that there are a handful of "extra wide" lateral images.
-
-viewpoint_metadata = metadata[metadata.viewpoint != "top"]
-display_image_dimensions(viewpoint_metadata, title="lateral images")
-
+# Note that the two plots do not share axes. The lateral images are generally much wider, with a handful that are "extra wide".
 
 # #### Matches
 # As noted above, we can use the `whale_id` data to identify images of the same whale.
