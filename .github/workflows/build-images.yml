@@ -29,6 +29,7 @@ jobs:
             --build-arg CPU_OR_GPU=${{ matrix.proc }} \
             --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG \
             --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$LATEST_TAG
+          docker image list
 
       - name: Tests packages in container
         run: |
