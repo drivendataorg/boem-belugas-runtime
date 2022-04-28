@@ -5,10 +5,8 @@ exit_code=0
 {
     cd /code_execution
 
-    echo "List installed packages"
-    echo "######################################"
-    conda list -n condaenv
-    echo "######################################"
+    echo "Log installed packages"
+    conda list -n condaenv >> ./submission/log.txt
 
     echo "Unpacking submission..."
     unzip ./submission/submission.zip -d ./
