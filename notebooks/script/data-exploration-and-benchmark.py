@@ -9,16 +9,22 @@
 
 # ## Where's Whale-do?
 # 
+# Cook Inlet beluga whales are at risk of extinction. This beluga population began declining in the 1990s due to overhunting and currently contains less than 300 surviving individuals. As a result, NOAA Fisheries conducts an annual photo-identification survey to more closely monitor and track individual whales. This is where we need your help!
+# 
+# The goal of this $35,000 challenge is to help wildlife researchers accurately match beluga whale individuals from photographic images. Accelerated and scalable photo-identification is critical to population assessment, management, and protection of this endangered whale population.
+# 
 # **For this competition, your goal is to identify which images in a database contain the same individual beluga whale seen in a query image.**
 # 
-# You will be provided with a set of queries, each one specifying a single query image of a beluga whale and a corresponding database to search for matches to that same individual. The database will include images of both matching and non-matching belugas. This is a learning-to-rank information retrieval task.
+# You will be provided with a set of queries, each one specifying a single image of a beluga whale and a corresponding database to search for matches to that same individual. The database will include images of both matching and non-matching belugas. This is a learning-to-rank information retrieval task.
 # 
 # This notebook covers two main areas:
 # 
-# - **Section 1. Data exploration**: An introduction to the beluga images dataset, including examples of the different image types and visual features to be aware of.
+# - [**Section 1. Data exploration:**](#data-exploration): An introduction to the beluga images dataset, including examples of the different image types and visual features to be aware of.
 # 
-# - **Section 2. Running the benchmark**: A demonstration of how to run the benchmark example and produce a valid code submission.
+# - [**Section 2. Demo submission:**](#demo-submission) A demonstration of how to run the benchmark example and produce a valid code submission.
 
+# <a id="data-exploration"></a>
+# 
 # ## Section 1: Data exploration
 
 # ### Download the data
@@ -50,7 +56,7 @@
 # If you're working off a clone of this [runtime repository](https://github.com/drivendataorg/boem-belugas-runtime), you should already have copies of the `databases`, `queries` and `query_scenarios.csv` files.
 
 # ### Explore the data
-# First, let's load a couple of the data files we just downloaded. Initially, we are just going to be focused on the `metadata` file.
+# First, let's load a couple of the data files we just downloaded. Initially we are just going to be focused on the `metadata` file.
 
 from pathlib import Path
 
@@ -116,7 +122,7 @@ print(f"n whale IDs: {metadata.whale_id.nunique()}")
 
 def display_image_dimensions(metadata, title=None):
     lim = max(metadata.width.max(), metadata.height.max())*1.1
-    plt.figure(figsize=(5,5))
+    plt.figure(figsize=(3,3))
     plt.scatter(metadata.width, metadata.height, alpha=0.1)
     plt.ylim(0,lim)
     plt.ylabel('image height (pixels)')
@@ -138,7 +144,7 @@ display_image_dimensions(viewpoint_metadata, title="lateral images")
 # #### Matches
 # As noted above, we can use the `whale_id` data to identify images of the same whale.
 # 
-# Typically, we'll have between 2–6 distinct images of most whales. But in some cases we may have just one image of a given whale, and in other cases we have many more (>100).
+# Typically we'll have between 2-6 distinct images of most whales. But in some cases we may have just one image of a given whale, and in other cases we have many more (>100).
 
 whale_id_counts = metadata.groupby("whale_id").size()
 
@@ -211,7 +217,9 @@ plt.ylabel("count (log scale)")
 plt.xlabel("encounter duration in minutes")
 
 
-# ## Section 2: Benchmark Demo
+# <a id="demo-submission"></a>
+# 
+# ## Section 2: Demo submission
 # Now that we've had a chance to get familiar with the data, it's time to walk through the steps for creating a competition submission.
 # 
 # This is a **code submission competition**, so our focus for now will be on creating that submission in the correct format, and less so on the quality of the model itself.
@@ -245,13 +253,15 @@ torch.save(model, BENCHMARK_SRC / "model.pth")
 
 # ### Three Commands
 # To run and test the benchmark example, you just need to execute the following 3 commands:
-# ```bash
-# make pull
-# make pack-benchmark
-# make test-submission
-# ```
+# 
+# 1. [`make pull`](#make-pull)
+# 2. [`make pack-benchmark`](#make-pack-benchmark)
+# 3. [`make test-submission`](#make-test-submission)
+# 
 # These are defined in the project `Makefile` [here](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/Makefile). We'll walk through what each one does now.
 
+# <a id="make-pull"></a>
+# 
 # #### **`make pull`** 
 # Pulls the official version of the competition docker image from the [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/). Having a local version of the competition image allows you to test your submission using the same image that is used during code execution.
 # 
@@ -267,6 +277,8 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make pull')
 get_ipython().system('docker images')
 
 
+# <a id="make-pack-benchmark"></a>
+# 
 # #### **`make pack-benchmark`** 
 # This command simply goes to your `benchmark_src` directory, zips the contents, and writes the zip archive to `submission/submission.zip`.
 # 
@@ -297,14 +309,15 @@ get_ipython().system('cd {PROJ_DIRECTORY} && make pack-benchmark')
 
 # This is the file that we will eventually upload to the competition platform for code execution, but before doing that, we want to test it locally.
 
+# <a id="make-test-submission"></a>
+# 
 # #### **`make test-submission`** 
 # This command simulates what happens during actual code execution, launching an instance of the official Docker image and running the same inference process that runs on the competition platform. The required host directories are mounted on the container, and the entrypoint script `main.py` is executed.
 # 
 # For this benchmark, the `main.py` script simply does the following:
-# 
-# 1. Precomputes embeddings for all images (both query and database images)
-# 2. Computes cosine similarities between each query and its database
-# 3. Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
+# * Precomputes embeddings for all images (both query and database images)
+# * Computes cosine similarities between each query and its database
+# * Returns the top 20 closest matches for each query and writes these to a `submission/submission.csv`
 
 get_ipython().system('cd {PROJ_DIRECTORY} && make test-submission')
 
@@ -427,6 +440,7 @@ query_scenarios
 #   </tbody>
 # </table>
 # 
+# Now that you have a valid submission CSV, you also have the option of scoring it locally (using the public training labels, of course). See the [scoring script section](https://www.drivendata.org/competitions/96/beluga-whales/page/482/#scoring_ground_truth) of the competition website for more details.
 
 # ### Submitting to the platform
 # We're almost done. Assuming that our test run completed and the `submission.csv` looks correct, it's time to submit the code on the platform.
@@ -448,4 +462,4 @@ query_scenarios
 # 
 # **That's it! You're on your way to creating your own code submission and helping to protect endangered beluga whale populations with machine learning.**
 # 
-# **Have fun! And happy building!**
+# **Head over to the [competition](https://www.drivendata.org/competitions/96/competition-beluga-whales/) homepage to get started. And have fun! We can't wait to see what you build!**
