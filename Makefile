@@ -127,7 +127,7 @@ endif
 		--shm-size 8g \
 		--name ${CONTAINER_NAME} \
 		--rm \
-		${REGISTRY_IMAGE}
+		${SUBMISSION_IMAGE}
 
 ## Delete temporary Python cache and bytecode files
 clean:
