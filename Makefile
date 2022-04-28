@@ -60,10 +60,9 @@ build:
 test-container: build _submission_write_perms
 	docker run \
 		${TTY_ARGS} \
-		--mount type=bind,source="$(shell pwd)"/runtime/run-tests.sh,target=/run-tests.sh,readonly \
 		--mount type=bind,source="$(shell pwd)"/runtime/tests,target=/tests,readonly \
 		${LOCAL_IMAGE} \
-		/bin/bash -c "bash /run-tests.sh"
+		/bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
 ## Start your locally built container and open a bash shell within the running container; same as submission setup except has network access
 interact-container: build _submission_write_perms
@@ -86,6 +85,14 @@ ifneq (,$(wildcard ./submission/submission.zip))
 	$(error You already have a submission/submission.zip file. Rename or remove that file (e.g., rm submission/submission.zip).)
 endif
 	cd submission_quickstart; zip -r ../submission/submission.zip ./*
+
+## Creates a submission/submission.zip file from the source code in submission_benchmark
+pack-benchmark:
+# Don't overwrite so no work is lost accidentally
+ifneq (,$(wildcard ./submission/submission.zip))
+	$(error You already have a submission/submission.zip file. Rename or remove that file (e.g., rm submission/submission.zip).)
+endif
+	cd benchmark_src; zip -r ../submission/submission.zip ./*
 
 ## Creates a submission/submission.zip file from the source code in submission_src
 pack-submission:
@@ -119,7 +126,7 @@ endif
 		--shm-size 8g \
 		--name ${CONTAINER_NAME} \
 		--rm \
-		${REGISTRY_IMAGE}
+		${SUBMISSION_IMAGE}
 
 ## Delete temporary Python cache and bytecode files
 clean:
