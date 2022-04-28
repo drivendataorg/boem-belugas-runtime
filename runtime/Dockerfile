@@ -34,7 +34,7 @@ RUN echo "Creating ${RUNTIME_USER} user..." \
 # Install base packages
 ARG DEBIAN_FRONTEND=noninteractive
 COPY ./apt.txt /home/${RUNTIME_USER}
-RUN rm /etc/apt/sources.list.d/cuda.list && rm /etc/apt/sources.list.d/nvidia-ml.list
+RUN rm -f /etc/apt/sources.list.d/cuda.list && rm -f /etc/apt/sources.list.d/nvidia-ml.list
 RUN echo "Installing base packages..." \
     && apt-get update --fix-missing \
     && apt-get install -y apt-utils 2> /dev/null \
