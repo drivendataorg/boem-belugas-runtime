@@ -63,7 +63,7 @@ test-container: build _submission_write_perms
 		--mount type=bind,source="$(shell pwd)"/runtime/run-tests.sh,target=/run-tests.sh,readonly \
 		--mount type=bind,source="$(shell pwd)"/runtime/tests,target=/tests,readonly \
 		${LOCAL_IMAGE} \
-		/bin/bash -c "bash /run-tests.sh"
+		/bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
 ## Start your locally built container and open a bash shell within the running container; same as submission setup except has network access
 interact-container: build _submission_write_perms
