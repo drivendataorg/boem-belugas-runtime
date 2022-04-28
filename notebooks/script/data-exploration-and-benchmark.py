@@ -463,3 +463,5 @@ query_scenarios
 # **That's it! You're on your way to creating your own code submission and helping to protect endangered beluga whale populations with machine learning.**
 # 
 # **Head over to the [competition](https://www.drivendata.org/competitions/96/competition-beluga-whales/) homepage to get started. And have fun! We can't wait to see what you build!**
+
+# _Additional photos courtesy of [Paul Wade/NOAA Fisheries](https://www.fisheries.noaa.gov/feature-story/studying-endangered-cook-inlet-beluga-whales-alaska)._
