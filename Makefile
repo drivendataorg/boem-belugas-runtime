@@ -60,7 +60,6 @@ build:
 test-container: build _submission_write_perms
 	docker run \
 		${TTY_ARGS} \
-		--mount type=bind,source="$(shell pwd)"/runtime/run-tests.sh,target=/run-tests.sh,readonly \
 		--mount type=bind,source="$(shell pwd)"/runtime/tests,target=/tests,readonly \
 		${LOCAL_IMAGE} \
 		/bin/bash -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
