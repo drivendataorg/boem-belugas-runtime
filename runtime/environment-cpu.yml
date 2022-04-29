@@ -11,6 +11,7 @@ dependencies:
   - mkl=2020.4
   - numpy=1.20.3
   - numba=0.54.1
+  - opencv=4.5.2
   - pandas=1.2.5
   - pillow=8.2.0
   - pip=20.3.4
