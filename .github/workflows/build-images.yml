@@ -16,6 +16,7 @@ jobs:
         os: ['ubuntu-latest']
         proc: ['cpu', 'gpu']
     env:
+      LOGIN_SERVER: boembelugas.azurecr.io
       IMAGE: drivendata/belugas-competition
       SHA_TAG: ${{ matrix.proc }}-${{ github.sha }}
       LATEST_TAG: ${{ matrix.proc }}-latest
@@ -27,16 +28,16 @@ jobs:
         run: |
           docker build runtime \
             --build-arg CPU_OR_GPU=${{ matrix.proc }} \
-            --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG \
-            --tag ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$LATEST_TAG
+            --tag $LOGIN_SERVER/$IMAGE:$SHA_TAG \
+            --tag $LOGIN_SERVER/$IMAGE:$LATEST_TAG
 
       - name: Check image size
         run: |
-          docker image list ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE
+          docker image list $LOGIN_SERVER/$IMAGE
 
       - name: Tests packages in container
         run: |
-          docker run ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE:$SHA_TAG /bin/bash \
+          docker run $LOGIN_SERVER/$IMAGE:$SHA_TAG /bin/bash \
             -c "conda run --no-capture-output -n condaenv pytest tests/test_packages.py"
 
       - name: Log into Azure
@@ -49,11 +50,11 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: azure/docker-login@v1
         with:
-          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          login-server: $LOGIN_SERVER
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Push image to ACR
         if: github.ref == 'refs/heads/master'
         run: |
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/$IMAGE --all-tags
+          docker push $LOGIN_SERVER/$IMAGE --all-tags
