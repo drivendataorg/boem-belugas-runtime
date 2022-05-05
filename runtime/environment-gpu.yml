@@ -25,9 +25,9 @@ dependencies:
   - scikit-image=0.18.2
   - scikit-learn=0.24.2
   - scipy=1.7.1
-  - timm=0.4.12
   - torchvision=0.9.1=py39cuda111hcd06603_1_cuda
   - tqdm=4.62.0
   - pip:
     - lightning-flash[image]==0.5.0
     - tensorflow-gpu==2.6.0
+    - timm==0.5.4
