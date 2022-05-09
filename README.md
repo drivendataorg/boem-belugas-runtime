@@ -15,7 +15,7 @@ This repository has three primary uses for competitors:
 
 1. 💡 **Example solutions**: You can find two examples that will help you develop your own solution.
     - **[Quickstart example](https://github.com/drivendataorg/boem-belugas-runtime/blob/master/submission_src/main.py):** A minimal code example that runs succesfully in the runtime environment and outputs a properly formatted submission CSV. This will generate arbitrary predictions, so unfortunately you won't win the competition with this example, but you can use it as a guide for bringing in your own work and generating a real submission.
-    - **Deep learning example:** This example implements the benchmark solution based on the [getting started blog post](TBD).
+    - **Deep learning example:** This example implements the benchmark solution based on the [getting started blog post](https://www.drivendata.co/blog/belugas-benchmark/).
 2. 🔧 **Test your submission**: Test your submission with a locally running version of the container to discover errors before submitting to the competition site.
 3. 📦 **Request new packages in the official runtime**: Since the Docker container will not have network access, all packages must be pre-installed. If you want to use a package that is not in the runtime environment, make a pull request to this repository.
 
