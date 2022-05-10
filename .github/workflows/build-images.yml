@@ -50,7 +50,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: azure/docker-login@v1
         with:
-          login-server: $LOGIN_SERVER
+          login-server: ${{ env.LOGIN_SERVER }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
