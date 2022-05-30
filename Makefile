@@ -84,7 +84,11 @@ pack-quickstart:
 ifneq (,$(wildcard ./submission/submission.zip))
 	$(error You already have a submission/submission.zip file. Rename or remove that file (e.g., rm submission/submission.zip).)
 endif
-	cd submission_quickstart; zip -r ../submission/submission.zip ./*
+ifeq ($(OS),Windows_NT)
+	powershell Compress-Archive -Path submission_quickstart\* -DestinationPath submission\submission.zip
+else
+    cd submission_quickstart; zip -r ../submission/submission.zip ./*
+endif
 
 ## Creates a submission/submission.zip file from the source code in submission_benchmark
 pack-benchmark:
@@ -92,7 +96,12 @@ pack-benchmark:
 ifneq (,$(wildcard ./submission/submission.zip))
 	$(error You already have a submission/submission.zip file. Rename or remove that file (e.g., rm submission/submission.zip).)
 endif
-	cd benchmark_src; zip -r ../submission/submission.zip ./*
+ifeq ($(OS),Windows_NT)
+	powershell Compress-Archive -Path benchmark_src\* -DestinationPath submission\submission.zip
+else
+    @echo "Hello"
+    cd benchmark_src; zip -r ../submission/submission.zip ./*
+endif
 
 ## Creates a submission/submission.zip file from the source code in submission_src
 pack-submission:
@@ -100,8 +109,11 @@ pack-submission:
 ifneq (,$(wildcard ./submission/submission.zip))
 	$(error You already have a submission/submission.zip file. Rename or remove that file (e.g., rm submission/submission.zip).)
 endif
-	cd submission_src; zip -r ../submission/submission.zip ./*
-
+ifeq ($(OS),Windows_NT)
+	powershell Compress-Archive -Path submission_src\* -DestinationPath submission\submission.zip
+else
+    cd submission_src; zip -r ../submission/submission.zip ./*
+endif
 
 ## Runs container using code from `submission/submission.zip` and data from `data/`
 test-submission: _submission_write_perms
