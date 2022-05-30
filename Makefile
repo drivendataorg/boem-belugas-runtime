@@ -99,7 +99,6 @@ endif
 ifeq ($(OS),Windows_NT)
 	powershell Compress-Archive -Path benchmark_src\* -DestinationPath submission\submission.zip
 else
-    @echo "Hello"
     cd benchmark_src; zip -r ../submission/submission.zip ./*
 endif
 
