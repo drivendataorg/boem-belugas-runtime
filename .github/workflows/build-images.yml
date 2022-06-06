@@ -6,6 +6,7 @@ on:
     paths: ['runtime/**', '.github/workflows/build-images.yml']
   pull_request:
     paths: ['runtime/**', '.github/workflows/build-images.yml']
+  workflow_dispatch:
 
 jobs:
   build:
