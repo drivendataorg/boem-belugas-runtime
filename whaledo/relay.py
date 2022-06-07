@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import attr
+from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from fairscale.nn import auto_wrap  # type: ignore
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -51,12 +52,10 @@ class WhaledoRelay(Relay):
         configs = dict(
             dm=dm,
             alg=alg,
-            pt_alg=alg,
             backbone=backbone,
             predictor=predictor,
             meta_model=meta_model,
             trainer=[Option(class_=pl.Trainer, name="base")],
-            pt_trainer=[Option(class_=pl.Trainer, name="base")],
             logger=[Option(class_=WandbLoggerConf, name="base")],
             checkpointer=[Option(class_=ModelCheckpoint, name="base")],
         )
@@ -72,12 +71,12 @@ class WhaledoRelay(Relay):
         self.log(f"Current working directory: '{os.getcwd()}'")
         pl.seed_everything(self.seed, workers=True)
 
-        dm: pl.LightningDataModule = instantiate(self.dm)
+        dm: CdtVisionDataModule = instantiate(self.dm)
         dm.prepare_data()
         dm.setup()
 
         backbone, feature_dim = instantiate(self.backbone)()
-        predictor, out_dim = instantiate(self.predictor)(in_dim=feature_dim, out_dim=dm.target_dim)
+        predictor, out_dim = instantiate(self.predictor)(in_dim=feature_dim, out_dim=dm.card_y)
         model: Union[Model, MetaModel]
         model = Model(
             backbone=backbone, feature_dim=feature_dim, predictor=predictor, out_dim=out_dim
