@@ -3,25 +3,7 @@ line-length = 100
 target-version = ['py37']
 
 [tool.isort]
-known_third_party = [
-  "black",
-  "click",
-  "click_option_group",
-  "hydra",
-  "matplotlib",
-  "mypy",
-  "numpy",
-  "omegaconf",
-  "pandas",
-  "pylint",
-  "pytest",
-  "scipy",
-  "setuptools",
-  "sklearn",
-  "torch",
-  "tqdm",
-  "wandb",
-]
+known_third_party = ["PIL", "loguru", "matplotlib", "pandas", "pytest", "sklearn", "torch", "torchvision", "tqdm", "typer"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__"]
 line_length = 88
@@ -70,6 +52,7 @@ augly = "^1.0.0"
 albumentations = "1.0.3"
 transformers = "^4.19.2"
 timm = "0.5.4"
+loguru = "0.5.3"
 
 [tool.poetry.extras]
 deepspeed = ["deepspeed", "triton"]
@@ -79,6 +62,7 @@ black = "^22.1"
 pytest = "^6.2.2"
 isort = "^5.7.0"
 darglint = "^1.8.0"
+pre-commit = "^2.19.0"
 
 [tool.pyright]
 exclude = ["**/node_modules", "**/__pycache__", "**/.**"]
