@@ -218,7 +218,8 @@ def get_duration_mins(df):
 
 
 encounter_durations = metadata.groupby("encounter_id").apply(get_duration_mins)
-encounter_durations.plot(kind="hist", bins=range(0, int(encounter_durations.max() + 1)), logy=True)
+encounter_durations.plot(kind="hist", bins=range(int(encounter_durations.max() + 1)), logy=True)
+
 plt.ylabel("count (log scale)")
 plt.xlabel("encounter duration in minutes")
 

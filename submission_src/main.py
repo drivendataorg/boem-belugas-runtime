@@ -11,9 +11,9 @@ def predict(query_image_id, database_image_ids):
     raise NotImplementedError(
         "This script is just a template. You should adapt it with your own code."
     )
-    result_images = ...
-    scores = ...
-    return result_images, scores
+    # result_images = ...
+    # scores = ...
+    # return result_images, scores
 
 
 def main():
@@ -35,7 +35,14 @@ def main():
             result_images, scores = predict(query_image_id, database_image_ids)
             ##################################
 
-            predictions.extend({"query_id": query_id, "database_image_id": pred_image_id, "score": score,} for pred_image_id, score in zip(result_images, scores))
+            predictions.extend(
+                {
+                    "query_id": query_id,
+                    "database_image_id": pred_image_id,
+                    "score": score,
+                }
+                for pred_image_id, score in zip(result_images, scores)
+            )
 
     predictions_df = pd.DataFrame(predictions)
     predictions_df.to_csv(OUTPUT_FILE, index=False)
