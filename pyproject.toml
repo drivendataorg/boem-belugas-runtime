@@ -70,6 +70,7 @@ augly = "^1.0.0"
 albumentations = "1.0.3"
 transformers = "^4.19.2"
 timm = "0.5.4"
+loguru = "0.5.3"
 
 [tool.poetry.extras]
 deepspeed = ["deepspeed", "triton"]

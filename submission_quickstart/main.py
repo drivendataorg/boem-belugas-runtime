@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 ROOT_DIRECTORY = Path("/code_execution")
 DATA_DIRECTORY = ROOT_DIRECTORY / "data"
 OUTPUT_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
@@ -13,6 +12,7 @@ def predict(query_image_id, database_image_ids):
     result_images = database_image_ids[database_image_ids != query_image_id][:20].tolist()
     scores = [0.5] * len(result_images)
     return result_images, scores
+
 
 def main():
     scenarios_df = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv")
@@ -33,17 +33,11 @@ def main():
             result_images, scores = predict(query_image_id, database_image_ids)
             ##################################
 
-            for pred_image_id, score in zip(result_images, scores):
-                predictions.append(
-                    {
-                        "query_id": query_id,
-                        "database_image_id": pred_image_id,
-                        "score": score,
-                    }
-                )
+            predictions.extend({"query_id": query_id, "database_image_id": pred_image_id, "score": score,} for pred_image_id, score in zip(result_images, scores))
 
     predictions_df = pd.DataFrame(predictions)
     predictions_df.to_csv(OUTPUT_FILE, index=False)
+
 
 if __name__ == "__main__":
     main()

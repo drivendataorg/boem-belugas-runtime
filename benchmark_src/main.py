@@ -1,14 +1,13 @@
 from pathlib import Path
 
+from PIL import Image
 from loguru import logger
 import pandas as pd
-from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from tqdm import tqdm
-
 
 ROOT_DIRECTORY = Path("/code_execution")
 PREDICTION_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
@@ -26,17 +25,14 @@ class ImagesDataset(Dataset):
             [
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
-                ),
+                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ]
         )
 
     def __getitem__(self, idx):
         image = Image.open(DATA_DIRECTORY / self.metadata.path.iloc[idx]).convert("RGB")
         image = self.transform(image)
-        sample = {"image_id": self.metadata.index[idx], "image": image}
-        return sample
+        return {"image_id": self.metadata.index[idx], "image": image}
 
     def __len__(self):
         return len(self.metadata)
@@ -56,7 +52,9 @@ def main():
     scenario_imgs = []
     for row in query_scenarios.itertuples():
         scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.queries_path).query_image_id.values)
-        scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values)
+        scenario_imgs.extend(
+            pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values
+        )
     scenario_imgs = sorted(set(scenario_imgs))
     metadata = metadata.loc[scenario_imgs]
 
@@ -69,7 +67,9 @@ def main():
     logger.info("Precomputing embeddings")
     for batch in tqdm(dataloader, total=len(dataloader)):
         batch_embeddings = model(batch["image"])
-        batch_embeddings_df = pd.DataFrame(batch_embeddings.detach().numpy(), index=batch["image_id"])
+        batch_embeddings_df = pd.DataFrame(
+            batch_embeddings.detach().numpy(), index=batch["image_id"]
+        )
         embeddings.append(batch_embeddings_df)
 
     embeddings = pd.concat(embeddings)
@@ -88,11 +88,13 @@ def main():
         for qry in qry_df.itertuples():
             # get embeddings; drop query from database, if it exists
             qry_embedding = embeddings.loc[[qry.query_image_id]]
-            _db_embeddings = db_embeddings.drop(qry.query_image_id, errors='ignore')
+            _db_embeddings = db_embeddings.drop(qry.query_image_id, errors="ignore")
 
             # compute cosine similarities and get top 20
             sims = cosine_similarity(qry_embedding, _db_embeddings)[0]
-            top20 = pd.Series(sims, index=_db_embeddings.index).sort_values(0, ascending=False).head(20)
+            top20 = (
+                pd.Series(sims, index=_db_embeddings.index).sort_values(0, ascending=False).head(20)
+            )
 
             # append result
             qry_result = pd.DataFrame(
