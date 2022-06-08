@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 import random
 from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, overload
 
@@ -30,6 +31,7 @@ __class__ = [
     "MultiViewPair",
     "RandomGaussianBlur",
     "RandomSolarize",
+    "ResizeAndPadToSize",
 ]
 
 
@@ -335,3 +337,28 @@ class MultiCropTransform(Generic[LT]):
             local_transform=local_transform,
             local_crops_number=local_crops_number,
         )
+
+
+class ResizeAndPadToSize:
+    def __init__(self, size: int) -> None:
+        self.size = size
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        w, h = img.size
+        if h == w:
+            img = img.resize(size=(self.size, self.size))
+        if h > w:
+            new_w = round(w / h * self.size)
+            img = img.resize(size=(new_w, self.size))
+            half_residual = (self.size - new_w) / 2
+            pad_left = math.ceil(half_residual)
+            pad_right = math.floor(half_residual)
+            img = TF.pad(img, padding=[pad_left, 0, pad_right, 0])  # type: ignore
+        else:
+            new_h = round(h / w * self.size)
+            img = img.resize(size=(self.size, new_h))
+            half_residual = (self.size - new_h) / 2
+            pad_top = math.ceil(half_residual)
+            pad_bottom = math.floor(half_residual)
+            img = TF.pad(img, padding=[0, pad_top, 0, pad_bottom])  # type: ignore
+        return img

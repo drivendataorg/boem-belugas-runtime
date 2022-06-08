@@ -12,6 +12,7 @@ __all__ = [
     "AddableDict",
     "EvalOutputs",
     "EvalEpochOutput",
+    "Prediction",
 ]
 
 
@@ -54,3 +55,10 @@ class AddableDict(dict[_KT, _VT], Addable):
 
 EvalStepOutput: TypeAlias = EvalOutputs
 EvalEpochOutput: TypeAlias = List[EvalStepOutput]
+
+
+@dataclass(unsafe_hash=True)
+class Prediction:
+    query_inds: Tensor
+    pos_inds: Tensor
+    scores: Tensor

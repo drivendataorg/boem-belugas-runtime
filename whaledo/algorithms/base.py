@@ -16,11 +16,12 @@ from ranzen.torch.data import TrainingMode
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
+from torchmetrics.functional import average_precision
 from typing_extensions import Self
 
 from whaledo.models import MetaModel, Model
 from whaledo.transforms import BatchTransform
-from whaledo.types import AddableDict, EvalEpochOutput, EvalOutputs, EvalStepOutput
+from whaledo.types import EvalEpochOutput, EvalOutputs, EvalStepOutput
 
 __all__ = ["Algorithm"]
 
@@ -80,8 +81,7 @@ class Algorithm(pl.LightningModule):
         ...
 
     @torch.no_grad()
-    def inference_step(self, batch: BinarySample, stage: Stage) -> EvalOutputs:
-        step_output: AddableDict[str, EvalOutputs] = AddableDict()
+    def inference_step(self, batch: BinarySample) -> EvalOutputs:
         logits = self.forward(batch.x)
         return EvalOutputs(
             logits=logits.cpu(),
@@ -96,31 +96,31 @@ class Algorithm(pl.LightningModule):
         batch_idx: int,
         dataloader_idx: Optional[int] = None,
     ) -> EvalStepOutput:
-        return self.inference_step(batch=batch, stage=Stage.validate)
+        return self.inference_step(batch=batch)
 
     @torch.no_grad()
     def _evaluate(self, outputs: EvalOutputs) -> MetricDict:
-        ...
+        same_id = (outputs.ids.unsqueeze(1) == outputs.ids).long()
+        prediction = self.model.predict(queries=outputs.logits)
+        y_true = same_id.gather(1, prediction.pos_inds)
+        map = average_precision(
+            preds=prediction.scores,
+            target=y_true,
+            pos_label=1,
+            average="macro",
+        )
+        assert isinstance(map, Tensor)
+        return {"mean_average_precision": map.item()}
 
     def _epoch_end(self, outputs: Union[List[EvalOutputs], EvalEpochOutput]) -> MetricDict:
-        # check whether outputs contains the results from multiple data-loaders
         outputs_agg = reduce(operator.add, outputs)
-        if isinstance(outputs_agg, EvalOutputs):
-            return self._evaluate(outputs_agg)
-        # perform evaluation for multiple data-loaders
-        results_dict: MetricDict = {}
-        for split_name, split_output in outputs_agg.items():
-            results_dict |= prefix_keys(
-                self._evaluate(split_output),
-                prefix=split_name,
-                sep="/",
-            )
-        return results_dict
+        return self._evaluate(outputs_agg)
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def validation_epoch_end(self, outputs: EvalEpochOutput) -> None:
         results_dict = self._epoch_end(outputs=outputs)
+        results_dict = prefix_keys(results_dict, prefix=str(Stage.validate))
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
@@ -131,17 +131,19 @@ class Algorithm(pl.LightningModule):
         batch_idx: int,
         dataloader_idx: Optional[int] = None,
     ) -> EvalStepOutput:
-        return self.inference_step(batch=batch, stage=Stage.test)
+        return self.inference_step(batch=batch)
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def test_epoch_end(self, outputs: EvalEpochOutput) -> None:
         results_dict = self._epoch_end(outputs=outputs)
+        results_dict = prefix_keys(results_dict, prefix=str(Stage.test))
         self.log_dict(results_dict)
 
     def predict_step(
         self, batch: BinarySample[Tensor], batch_idx: int, dataloader_idx: Optional[int] = None
     ) -> BinarySample:
+
         return BinarySample(x=self.forward(batch.x), y=batch.y).to("cpu")
 
     @implements(pl.LightningModule)
