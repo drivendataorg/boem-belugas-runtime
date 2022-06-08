@@ -1,15 +1,8 @@
 from dataclasses import dataclass
-from src.models.meta.base import MetaModel
 
-__all__ = ["LinearProbe", "BitFit"]
+from whaledo.models.meta.base import MetaModel
 
-
-@dataclass(unsafe_hash=True)
-class LinearProbe(MetaModel):
-    def __post_init__(self) -> None:
-        for param in self.model.backbone.parameters():
-            param.requires_grad_(False)
-        super().__post_init__()
+__all__ = ["BitFit"]
 
 
 @dataclass(unsafe_hash=True)
