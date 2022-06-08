@@ -40,9 +40,7 @@ class WhaledoDataset(CdtVisionDataset[BinarySample[Tensor], Tensor, None]):
     ) -> TrainTestSplit[Self]:
         if not (0.0 < prop < 1.0):
             raise ValueError("'prop` must be in the range (0, 1)].")
-
         generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
-
         ids_u, counts = self.y.unique(
             return_counts=True,
         )
