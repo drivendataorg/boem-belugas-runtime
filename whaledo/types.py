@@ -52,5 +52,5 @@ class AddableDict(dict[_KT, _VT], Addable):
         return copy
 
 
-EvalStepOutput: TypeAlias = AddableDict[str, EvalOutputs]
+EvalStepOutput: TypeAlias = EvalOutputs
 EvalEpochOutput: TypeAlias = List[EvalStepOutput]

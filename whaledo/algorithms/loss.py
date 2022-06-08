@@ -7,9 +7,9 @@ from typing_extensions import Self
 
 __all__ = [
     "DecoupledContrastiveLoss",
+    "decoupled_constrastive_loss",
     "moco_loss",
-    "nnclr_loss",
-    "scl_loss",
+    "supcon_loss",
 ]
 
 
@@ -34,7 +34,7 @@ def moco_loss(
 T = TypeVar("T", Tensor, None)
 
 
-def scl_loss(
+def supcon_loss(
     anchors: Tensor,
     *,
     anchor_labels: Tensor,
@@ -72,7 +72,7 @@ def scl_loss(
     )
     logits = anchors[selected_rows] @ candidates_t.T
     # Apply temperature-scaling to the logits.
-    logits /= temperature
+    logits = logits / temperature
     z = logits.logsumexp(dim=-1).flatten()
     # Tile the row counts if dealing with multicropping.
     if anchors.ndim == 3:
@@ -82,13 +82,43 @@ def scl_loss(
     return (z.sum() - positives.sum()) / z.numel()
 
 
+def decoupled_constrastive_loss(
+    z1: Tensor,
+    z2: Tensor,
+    *,
+    temperature: float = 0.1,
+    weight_fn: Optional[Callable[[Tensor, Tensor], Tensor]] = None,
+) -> Tensor:
+    """
+    Calculates the one-way `decoupled constrastive loss <https://arxiv.org/pdf/2110.06848.pdf>`_.
+
+    :param z1: First embedding vector
+    :param z2: Second embedding vector
+    :param weight_fn: The weighting function of the positive sample loss.
+    :param temperature: Temperature controlling the sharpness of the softmax distribution.
+
+    :return: One-way loss between the embedding vectors.
+    """
+    cross_view_distance = torch.mm(z1, z2.t())
+    positive_loss = -torch.diag(cross_view_distance) / temperature
+    if weight_fn is not None:
+        positive_loss = positive_loss * weight_fn(z1, z2)
+    neg_similarity = torch.cat((z1 @ z1.t(), cross_view_distance), dim=1) / temperature
+    neg_mask = torch.eye(z1.size(0), device=z1.device).repeat(1, 2)
+    eps = torch.finfo(z1.dtype).eps
+    negative_loss = torch.logsumexp(neg_similarity + neg_mask * eps, dim=1, keepdim=False)
+    return (positive_loss + negative_loss).mean()
+
+
 def _von_mises_fisher_weighting(z1: Tensor, z2: Tensor, *, sigma: float = 0.5) -> Tensor:
     return 2 - len(z1) * ((z1 * z2).sum(dim=1) / sigma).softmax(dim=0).squeeze()
 
 
 class DecoupledContrastiveLoss(nn.Module):
     """
-    Decoupled Contrastive Loss proposed in https://arxiv.org/pdf/2110.06848.pdf
+    Implementation of the Decoupled Contrastive Loss proposed in
+    https://arxiv.org/pdf/2110.06848.pdf, adapted from the `official code
+    <https://github.com/raminnakhli/Decoupled-Contrastive-Learning>`_
     """
 
     def __init__(
@@ -96,10 +126,10 @@ class DecoupledContrastiveLoss(nn.Module):
         temperature: float = 0.1,
         *,
         weight_fn: Optional[Callable[[Tensor, Tensor], Tensor]] = None,
-    ):
+    ) -> None:
         """
-        :param weight: The weighting function of the positive sample loss.
-        :param temperature: Temperature to control the sharpness of the distribution.
+        :param weight_fn: The weighting function of the positive sample loss.
+        :param temperature: Temperature controlling the sharpness of the softmax distribution.
         """
         super().__init__()
         self.temperature = temperature
@@ -107,52 +137,24 @@ class DecoupledContrastiveLoss(nn.Module):
 
     def forward(self, z1: Tensor, z2: Tensor) -> Tensor:
         """
-        Calculate one-way DCL loss
-        :param z1: first embedding vector
-        :param z2: second embedding vector
-        :return: one-way loss
+        Calculates the one-way decoupled constrastive loss.
+
+        :param z1: First embedding vector
+        :param z2: Second embedding vector
+        :return: One-way loss between the embedding vectors.
         """
-        cross_view_distance = torch.mm(z1, z2.t())
-        positive_loss = -torch.diag(cross_view_distance) / self.temperature
-        if self.weight_fn is not None:
-            positive_loss = positive_loss * self.weight_fn(z1, z2)
-        neg_similarity = (
-            torch.cat((torch.mm(z1, z1.t()), cross_view_distance), dim=1) / self.temperature
+        return decoupled_constrastive_loss(
+            z1, z2, temperature=self.temperature, weight_fn=self.weight_fn
         )
-        neg_mask = torch.eye(z1.size(0), device=z1.device).repeat(1, 2)
-        eps = torch.finfo(z1.dtype).eps
-        negative_loss = torch.logsumexp(neg_similarity + neg_mask * eps, dim=1, keepdim=False)
-        return (positive_loss + negative_loss).mean()
 
     @classmethod
     def with_vmf_weighting(
         cls: Type[Self], sigma: float = 0.5, *, temperature: float = 0.1
     ) -> Self:
+        """
+        Initialise the DCL loss with von Mises-Fisher weighting.
+
+        :param sigma: :math:`\\sigma` (scale) parameter for the weigting function.
+        :param temperature: Temperature controlling the sharpness of the softmax distribution.
+        """
         return cls(temperature=temperature, weight_fn=_von_mises_fisher_weighting)
-
-
-def nnclr_loss(
-    anchors: Tensor, *, knn_source: Tensor, knn_indices: Tensor, temperature: float = 0.1
-) -> Tensor:
-    """
-    NearestNeighbor Contrastive Learning of visual Representations (NNCLR) loss.
-    """
-    knn_indices = knn_indices.view(anchors.size(0), -1)
-    pw_sim = (anchors @ knn_source.T) / temperature
-    positive_loss = (pw_sim.gather(1, knn_indices)).mean(dim=1)
-    negative_loss = pw_sim.logsumexp(dim=1, keepdim=False)
-    return (negative_loss - positive_loss).mean()
-
-
-def nnclr_loss2(
-    nn_source: Tensor, *, positives: Tensor, nn_indices: Tensor, temperature: float = 0.1
-) -> Tensor:
-    """
-    NearestNeighbor Contrastive Learning of visual Representations (NNCLR) loss.
-    """
-    nn_indices = nn_indices.view(len(positives))
-    unique_inds, counts = torch.unique(nn_indices, return_counts=True)
-    pw_sim = (nn_source[unique_inds] @ positives.T) / temperature
-    positive_loss = -pw_sim.diag()
-    negative_loss = pw_sim.logsumexp(dim=1, keepdim=False)
-    return (counts * (negative_loss - positive_loss)).sum() / len(positives)

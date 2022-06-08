@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Final, Optional, Tuple, Union, overload
+from typing import Any, Dict, Final, Optional, Tuple, Union
 
 from conduit.logging import init_logger
 from hydra.utils import instantiate
@@ -12,12 +12,7 @@ import wandb
 from wandb.sdk.lib.disabled import RunDisabled
 from wandb.wandb_run import Run
 
-from whaledo.models.base import (
-    BackboneFactory,
-    Model,
-    ModelFactoryOut,
-    PredictorFactory,
-)
+from whaledo.models.base import BackboneFactory, Model, ModelFactoryOut
 from whaledo.models.meta import MetaModel
 
 __all__ = [
@@ -45,7 +40,6 @@ def save_model_artifact(
         save_dict = {
             "state": {
                 "backbone": model.backbone.state_dict(),
-                "predictor": model.predictor.state_dict(),
             },
             "config": config,
         }
@@ -58,7 +52,6 @@ def save_model_artifact(
             for dict_conf in (
                 config["alg"],
                 config["backbone"],
-                config["predictor"],
             )
         )
         model_artifact = wandb.Artifact(artifact_name, type="model", metadata=config)
@@ -71,32 +64,6 @@ def save_model_artifact(
         )
 
 
-@overload
-def load_model_from_artifact(
-    name: str,
-    *,
-    run: Union[Run, RunDisabled],
-    project: Optional[str] = ...,
-    filename: str = ...,
-    target_dim: None = ...,
-    root: Optional[Union[Path, str]] = ...,
-) -> Tuple[nn.Module, int]:
-    ...
-
-
-@overload
-def load_model_from_artifact(
-    name: str,
-    *,
-    run: Union[Run, RunDisabled],
-    project: Optional[str] = ...,
-    filename: str = ...,
-    target_dim: int = ...,
-    root: Optional[Union[Path, str]] = ...,
-) -> Model:
-    ...
-
-
 def load_model_from_artifact(
     name: str,
     *,
@@ -105,7 +72,7 @@ def load_model_from_artifact(
     filename: str = DEFAULT_FILENAME,
     target_dim: Optional[int] = None,
     root: Optional[Union[Path, str]] = None,
-) -> Union[Tuple[nn.Module, int], Model]:
+) -> Tuple[nn.Module, int]:
     if root is None:
         root = Path("artifacts") / "models"
     root = Path(root)
@@ -129,20 +96,8 @@ def load_model_from_artifact(
     bb_fn: BackboneFactory = instantiate(state_dict["config"]["backbone"])
     backbone, feature_dim = bb_fn()
     backbone.load_state_dict(state_dict["state"]["backbone"])
-    if target_dim is None:
-        output = (backbone, feature_dim)
-    else:
-        pred_config = state_dict["config"]["predictor"]
-        pred_state = state_dict["state"]["predictor"]
-        pred_fn: PredictorFactory = instantiate(pred_config)
-        predictor, out_dim = pred_fn(in_dim=feature_dim, out_dim=target_dim)
-        predictor.load_state_dict(pred_state)
-        output = Model(
-            backbone=backbone, feature_dim=feature_dim, predictor=predictor, out_dim=out_dim
-        )
-        return output
     LOGGER.info(f"Model successfully loaded from artifact '{full_name}'.")
-    return output
+    return backbone, feature_dim
 
 
 @dataclass

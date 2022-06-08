@@ -22,7 +22,7 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 import torchvision.models as tvm  # type: ignore
 
-from src.models.base import BackboneFactory, ModelFactoryOut
+from whaledo.models.base import BackboneFactory, ModelFactoryOut
 
 __all__ = [
     "Beit",

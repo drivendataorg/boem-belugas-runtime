@@ -14,12 +14,12 @@ from typing_extensions import TypeAlias
 from whaledo.algorithms.base import Algorithm
 from whaledo.algorithms.mean_teacher import MeanTeacher
 from whaledo.algorithms.memory_bank import MemoryBank
-from whaledo.algorithms.self_supervised.multicrop import MultiCropWrapper
 from whaledo.transforms import MultiCropOutput, MultiViewPair
 from whaledo.utils import to_item
 
-from .base import SelfSupervisedAlgorithm
-from .loss import moco_loss, scl_loss
+from .base import Algorithm
+from .loss import moco_loss, supcon_loss
+from .multicrop import MultiCropWrapper
 
 __all__ = ["Moco"]
 
@@ -28,7 +28,7 @@ TrainBatch: TypeAlias = BinarySample[M]
 
 
 @dataclass(unsafe_hash=True)
-class Moco(SelfSupervisedAlgorithm):
+class Moco(Algorithm):
     IGNORE_INDEX: ClassVar[int] = -100
 
     out_dim: int = 128
@@ -66,7 +66,7 @@ class Moco(SelfSupervisedAlgorithm):
         embed_dim = self.model.feature_dim
         head = nn.Linear(embed_dim, self.out_dim)
         if self.mlp_head:
-            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.ReLU(), head)  # type: ignore
+            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), head)
         self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
         self.teacher = MeanTeacher(
             self.student,
@@ -74,9 +74,6 @@ class Moco(SelfSupervisedAlgorithm):
             decay_end=self.ema_decay_end,
             warmup_steps=self.ema_warmup_steps,
             auto_update=False,
-        )
-        self.online_predictor = nn.Sequential(
-            nn.Flatten(), nn.Linear(embed_dim, self.model.out_dim)
         )
 
         # initialise the memory banks
@@ -119,15 +116,14 @@ class Moco(SelfSupervisedAlgorithm):
     ) -> Tensor:
         # Compute the student's logits using both the global and local crops.
         inputs = batch.x
-        student_features_logits = self.student.forward(inputs.anchor, return_features=True)
-        student_logits = student_features_logits.logits
-        student_logits = F.normalize(student_logits, dim=-1)
+        student_logits = self.student.forward(inputs.anchor)
+        student_logits = F.normalize(student_logits, dim=1, p=2)
 
         # Compute the teacher's logits using only the global crops.
         with torch.no_grad():
             self.teacher.update()
             teacher_logits = self.teacher.forward(inputs.target)
-            teacher_logits = F.normalize(teacher_logits, dim=1)
+            teacher_logits = F.normalize(teacher_logits, dim=1, p=2)
 
         logits_past = self.logit_mb.clone()
 
@@ -146,7 +142,7 @@ class Moco(SelfSupervisedAlgorithm):
             labels_past = self.label_mb.clone()
             lp_mask = (labels_past != self.IGNORE_INDEX).squeeze(-1)
             if lp_mask.count_nonzero():
-                cd_loss = scl_loss(
+                cd_loss = supcon_loss(
                     anchors=student_logits,
                     anchor_labels=batch.y,
                     candidates=logits_past[lp_mask],
@@ -155,9 +151,6 @@ class Moco(SelfSupervisedAlgorithm):
                 )
                 loss += cd_loss
             self.label_mb.push(batch.y)
-
-        # Prepare the inputs for the online-evaluation network.
-        student_features = student_features_logits.features
 
         logging_dict = {
             "instance_discrimination": to_item(id_loss),
@@ -175,7 +168,3 @@ class Moco(SelfSupervisedAlgorithm):
         self.log_dict(logging_dict)
 
         return loss
-
-    @implements(Algorithm)
-    def forward(self, x: Tensor) -> Tensor:
-        return self.online_predictor(self.student.backbone(x))

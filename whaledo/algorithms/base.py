@@ -2,10 +2,9 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from functools import reduce
 import operator
-from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, List, Mapping, Optional, Tuple, TypeVar, Union
 
 from conduit.data.structures import BinarySample, NamedSample
-from conduit.metrics import hard_prediction
 from conduit.models.utils import prefix_keys
 from conduit.types import LRScheduler, MetricDict, Stage
 from hydra.utils import instantiate
@@ -14,7 +13,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from ranzen.torch.data import TrainingMode
-from ranzen.torch.optimizers import SAM
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
@@ -82,15 +80,13 @@ class Algorithm(pl.LightningModule):
         ...
 
     @torch.no_grad()
-    def inference_step(self, batch: BinarySample, stage: Stage) -> EvalStepOutput:
+    def inference_step(self, batch: BinarySample, stage: Stage) -> EvalOutputs:
         step_output: AddableDict[str, EvalOutputs] = AddableDict()
-        for name, subbatch in batch.items():
-            logits = self.forward(subbatch.x)
-            step_output[name] = EvalOutputs(
-                logits=logits.cpu(),
-                ids=subbatch.y.cpu(),
-            )
-        return step_output
+        logits = self.forward(batch.x)
+        return EvalOutputs(
+            logits=logits.cpu(),
+            ids=batch.y.cpu(),
+        )
 
     @implements(pl.LightningModule)
     @torch.no_grad()
@@ -182,7 +178,7 @@ class Algorithm(pl.LightningModule):
         return self.model(x)
 
     def _run_internal(
-        self, datamodule: LightningDataModule, *, trainer: pl.Trainer, test: bool = True
+        self, datamodule: pl.LightningDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         # Run routines to tune hyperparameters before training.
         trainer.tune(model=self, datamodule=datamodule)
@@ -198,6 +194,6 @@ class Algorithm(pl.LightningModule):
         return self
 
     def run(
-        self, datamodule: LightningDataModule, *, trainer: pl.Trainer, test: bool = True
+        self, datamodule: pl.LightningDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         return self._run_internal(datamodule=datamodule, trainer=trainer, test=test)

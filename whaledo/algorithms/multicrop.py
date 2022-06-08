@@ -1,12 +1,10 @@
-from typing import Literal, Optional, Tuple, Union, overload
+from typing import Optional, Tuple, Union
 
 from ranzen.decorators import implements
 import torch
 from torch import Tensor
 import torch.nn as nn
 from typing_extensions import TypeAlias
-
-from src.models.base import FeaturesLogits
 
 __all__ = ["MultiCropWrapper"]
 
@@ -28,22 +26,8 @@ class MultiCropWrapper(nn.Module):
         self.backbone = nn.Sequential(backbone, nn.Flatten())
         self.head = nn.Identity() if head is None else head
 
-    @overload
-    def forward(
-        self, x: Union[MultiResInput, Tensor], *, return_features: Literal[True]
-    ) -> FeaturesLogits:
-        ...
-
-    @overload
-    def forward(
-        self, x: Union[MultiResInput, Tensor], *, return_features: Literal[False] = ...
-    ) -> Tensor:
-        ...
-
     @implements(nn.Module)
-    def forward(
-        self, x: Union[MultiResInput, Tensor], *, return_features: bool = False
-    ) -> Union[FeaturesLogits, Tensor]:
+    def forward(self, x: Union[MultiResInput, Tensor], *, return_features: bool = False) -> Tensor:
         if isinstance(x, Tensor):
             features = self.backbone(x)
             logits = self.head(features)
@@ -66,6 +50,4 @@ class MultiCropWrapper(nn.Module):
             logits = self.head(features.view(-1, features.size(-1)))
             logits = logits.view(*features.shape[:2], -1)
 
-        if return_features:
-            return FeaturesLogits(features=features, logits=logits)
         return logits

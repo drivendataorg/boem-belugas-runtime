@@ -1,2 +1,3 @@
-from .erm import *
-from .self_supervised import *
+from .base import *
+from .moco import *
+from .simclr import *

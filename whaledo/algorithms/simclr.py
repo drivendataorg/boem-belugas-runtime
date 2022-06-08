@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional
+from typing import Optional
 
 from conduit.data.structures import BinarySample
 from conduit.logging import init_logger
@@ -13,12 +13,11 @@ import torch.nn.functional as F
 from typing_extensions import TypeAlias
 
 from whaledo.algorithms.base import Algorithm
-from whaledo.algorithms.self_supervised.multicrop import MultiCropWrapper
 from whaledo.transforms import MultiViewPair
 from whaledo.utils import to_item
 
-from .base import SelfSupervisedAlgorithm
-from .loss import DecoupledContrastiveLoss, scl_loss
+from .loss import DecoupledContrastiveLoss, supcon_loss
+from .multicrop import MultiCropWrapper
 
 __all__ = ["SimClr"]
 
@@ -28,8 +27,7 @@ TrainBatch: TypeAlias = BinarySample[MultiViewPair]
 
 
 @dataclass(unsafe_hash=True)
-class SimClr(SelfSupervisedAlgorithm):
-    IGNORE_INDEX: ClassVar[int] = -100
+class SimClr(Algorithm):
 
     out_dim: int = 128
     mlp_head: bool = True
@@ -55,11 +53,8 @@ class SimClr(SelfSupervisedAlgorithm):
         embed_dim = self.model.feature_dim
         head = nn.Linear(embed_dim, self.out_dim)
         if self.mlp_head:
-            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.ReLU(), head)  # type: ignore
+            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), head)
         self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
-        self.online_predictor = nn.Sequential(
-            nn.Flatten(), nn.Linear(embed_dim, self.model.out_dim)
-        )
         if self.vmf_weighting:
             self.loss_fn = DecoupledContrastiveLoss.with_vmf_weighting(
                 temperature=self.temp_id, sigma=self.sigma
@@ -90,12 +85,12 @@ class SimClr(SelfSupervisedAlgorithm):
         batch: TrainBatch,
         batch_idx: int,
     ) -> Tensor:
-        # Compute the student's logits using both the global and local crops.
         inputs = batch.x
-        features_logits_v1 = self.student.forward(inputs.v1, return_features=True)
-        features_logits_v2 = self.student.forward(inputs.v2, return_features=True)
-        logits_v1 = F.normalize(features_logits_v1.logits)
-        logits_v2 = F.normalize(features_logits_v2.logits)
+        logits_v1 = self.student.forward(inputs.v1)
+        logits_v1 = F.normalize(logits_v1, dim=1, p=2)
+
+        logits_v2 = self.student.forward(inputs.v2)
+        logits_v2 = F.normalize(logits_v2, dim=1, p=2)
 
         id_loss = self.loss_fn(logits_v1, logits_v2)
         if self.symmetrize_loss:
@@ -105,7 +100,7 @@ class SimClr(SelfSupervisedAlgorithm):
         cd_loss = None
         if self.scl_weight > 0:
             logits = torch.cat((logits_v1, logits_v2), dim=0)
-            cd_loss = scl_loss(
+            cd_loss = supcon_loss(
                 anchors=logits,
                 anchor_labels=batch.y,
                 temperature=self.temp_cd,
