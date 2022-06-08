@@ -73,6 +73,7 @@ augly = "^1.0.0"
 albumentations = "^1.1.0"
 transformers = "^4.19.2"
 torch-conduit = "^0.1.1"
+typer = "^0.4.1"
 
 [tool.poetry.extras]
 deepspeed = ["deepspeed", "triton"]
