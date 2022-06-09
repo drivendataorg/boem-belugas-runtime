@@ -31,7 +31,7 @@ readme="README.md"
 [tool.poetry.dependencies]
 python = "3.9.7"
 torch = "^1.11"
-ranzen = {version = "^1.2.6", extras = ["all"]}
+ranzen = {version = "*", extras = ["all"]}
 scikit-learn = "0.24.2"
 scikit-image = "0.18.2"
 scipy = "1.7.1"
@@ -41,14 +41,12 @@ faiss-cpu = "^1.7.0"
 classy-vision = "^0.6.0"
 setuptools = "59.5.0" # for pytorch-lightning
 fairscale = "^0.4.5"
-hydra-submitit-launcher = "^1.1.6"
 typing-extensions = ">=4.0"
 deepspeed = { version = "^0.5.10", platform = "linux", optional = true }
 triton = { version = "1.0.0", platform = "linux",  optional = true }
 wrapt = "<1.14,>=1.11"
 omegaconf = "2.1.2"
 einops = "0.4.1"
-augly = "^1.0.0"
 albumentations = "1.0.3"
 transformers = "^4.19.2"
 torch-conduit = "^0.1.1"
