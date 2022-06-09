@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, TypeVar, Union
 
 from conduit.data.structures import InputContainer
 from conduit.types import Addable
+from ranzen.decorators import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
@@ -16,14 +17,16 @@ __all__ = [
 ]
 
 
-@dataclass
-class EvalOutputs(InputContainer):
+@dataclass(unsafe_hash=True)
+class EvalOutputs(InputContainer[Tensor]):
     logits: Tensor
     ids: Tensor
 
+    @implements(InputContainer)
     def __len__(self) -> int:
         return len(self.logits)
 
+    @implements(InputContainer)
     def __add__(self, other: Union[Self, Literal[0]]) -> Self:
         if other == 0:
             return self
@@ -45,7 +48,7 @@ class AddableDict(dict[_KT, _VT], Addable):
             if key_o in self:
                 value_s = self[key_o]
                 if isinstance(value_s, Addable) and isinstance(value_o, Addable):
-                    copy[key_o] = value_s + value_o
+                    copy[key_o] = value_s + value_o  # type: ignore
                 else:
                     copy[key_o] = [value_s, value_o]
             else:
@@ -62,3 +65,9 @@ class Prediction:
     query_inds: Tensor
     retrieved_inds: Tensor
     scores: Tensor
+
+    def __post_init__(self) -> None:
+        if len(self.query_inds) != len(self.retrieved_inds) != len(self.scores):
+            raise AttributeError(
+                "'query_inds', 'retrieved_inds', and 'scores' must be equal in length."
+            )

@@ -23,11 +23,12 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
     """Data-module for the 'Where's Whale-do' dataset."""
 
     base_sampler: BaseSampler = BaseSampler.RANDOM
+    image_size: int = 224
 
     @property
     def _default_train_transforms(self) -> ImageTform:
         transform_ls: List[ImageTform] = [
-            ResizeAndPadToSize(224),
+            ResizeAndPadToSize(self.image_size),
             T.ToTensor(),
             T.Normalize(*IMAGENET_STATS),
         ]

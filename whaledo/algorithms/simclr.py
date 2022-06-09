@@ -40,7 +40,6 @@ class SimClr(Algorithm):
     scl_weight: float = 0.0
     op_stop_grad: bool = True
 
-    online_predictor: nn.Module = field(init=False)
     loss_fn: DecoupledContrastiveLoss = field(init=False)
 
     def __post_init__(self) -> None:

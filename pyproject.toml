@@ -29,12 +29,11 @@ repository=""
 readme="README.md"
 
 [tool.poetry.dependencies]
-python = "3.9.7"
+python = ">=3.10,<3.11"
 torch = "^1.11"
 ranzen = {version = "*", extras = ["all"]}
 scikit-learn = "0.24.2"
 scikit-image = "0.18.2"
-scipy = "1.7.1"
 wandb = "^0.12.10"
 attrs = "^21.4.0"
 faiss-cpu = "^1.7.0"

@@ -12,6 +12,6 @@ log_model: false
 experiment: null
 prefix: ''
 entity: predictive-analytics-lab
-project: wheres-whale-do
+project: whaledo
 group: null
 tags: []

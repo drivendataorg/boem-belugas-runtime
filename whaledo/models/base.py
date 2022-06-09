@@ -21,7 +21,8 @@ M = TypeVar("M", bound=nn.Module)
 ModelFactoryOut: TypeAlias = Tuple[M, int]
 
 
-class BackboneFactory(Protocol):
+@dataclass
+class BackboneFactory:
     def __call__(self) -> ModelFactoryOut:
         ...
 

@@ -1,0 +1,54 @@
+# @package _global_
+
+# usage: +experiment=simclr
+
+defaults:
+    - override /dm: whaledo
+    - override /backbone: convnext
+    - override /alg: simclr
+    - override /logger: whaledo
+    - _self_
+
+backbone:
+  version: TINY
+  pretrained: false
+
+dm: 
+  image_size: 384
+  training_mode: step
+  train_batch_size: 128
+  train_transforms: 
+    _target_: torchvision.transforms.Compose
+    transforms: 
+    - _target_: whaledo.transforms.ResizeAndPadToSize
+      size: ${ dm.image_size }
+    - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
+      global_crop_size: ${ dm.image_size }
+      local_crops_number: 0
+
+trainer:
+  max_steps: 10000
+  multiple_trainloader_mode: 'min_size'
+  val_check_interval: 500
+  precision: 16
+  accumulate_grad_batches: null
+
+alg:
+  lr: 1e-4
+  temp_id: 0.1
+  sigma: 0.5
+  vmf_weighting: false
+  scl_weight: 0.0
+  op_stop_grad: false
+  temp_cd: 0.1
+  out_dim: 256
+  mlp_head: true
+  scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
+  scheduler_kwargs:
+    warmup_iters: 1000
+    total_iters: ${ trainer.max_steps }
+    lr_start: 5e-7
+
+logger:
+  group: simclr
+

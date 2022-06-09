@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import reduce
 import operator
 from typing import Any, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -42,10 +42,6 @@ class Algorithm(pl.LightningModule):
     lr_sched_freq: int = 1
     batch_transforms: Optional[List[BatchTransform]] = None
     test_on_best: bool = False
-    rmap: RetrievalMAP = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.rmap = RetrievalMAP()
 
     def __new__(cls: type[Self], *args: Any, **kwargs: Any) -> Self:
         obj = object.__new__(cls)
@@ -106,8 +102,8 @@ class Algorithm(pl.LightningModule):
     def _evaluate(self, outputs: EvalOutputs) -> MetricDict:
         same_id = (outputs.ids.unsqueeze(1) == outputs.ids).long()
         pred = self.model.predict(queries=outputs.logits)
-        y_true = same_id[pred.retrieved_inds]
-        map = self.rmap(preds=pred.scores, target=y_true, indexes=pred.query_inds)
+        y_true = same_id[pred.query_inds, pred.retrieved_inds]
+        map = RetrievalMAP()(preds=pred.scores, target=y_true, indexes=pred.query_inds)
         return {"mean_average_precision": map.item()}
 
     def _epoch_end(self, outputs: Union[List[EvalOutputs], EvalEpochOutput]) -> MetricDict:
