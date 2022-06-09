@@ -5,7 +5,6 @@ import warnings
 
 import pytest
 
-
 packages = [
     # these are problem libraries that don't always seem to import, mostly due
     # to dependencies outside the python world
@@ -39,6 +38,4 @@ def test_gpu_packages():
         assert tf.config.list_physical_devices("GPU")
 
     except FileNotFoundError:
-        warnings.warn(
-            "Skipping GPU import tests since nvidia-smi is not present on test machine."
-        )
+        warnings.warn("Skipping GPU import tests since nvidia-smi is not present on test machine.")

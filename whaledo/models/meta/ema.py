@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 from torch.optim.swa_utils import AveragedModel
 
-from src.models.meta.base import MetaModel
+from whaledo.models.meta.base import MetaModel
 
 __all__ = ["EmaModel"]
 

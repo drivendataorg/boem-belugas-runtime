@@ -14,7 +14,7 @@ __all__ = ["WhaledoDataset"]
 SampleType: TypeAlias = BinarySample
 
 
-class WhaledoDataset(CdtVisionDataset[BinarySample[Tensor], Tensor, None]):
+class WhaledoDataset(CdtVisionDataset[BinarySample[Tensor], Tensor, Tensor]):
     """
     Pytorch dataset for the
     `Where's Whale-do? competition <https://www.drivendata.org/competitions/96/beluga-whales/>`_
@@ -28,9 +28,17 @@ class WhaledoDataset(CdtVisionDataset[BinarySample[Tensor], Tensor, None]):
     ) -> None:
         self.root = Path(root)
         self.metadata = cast(pd.DataFrame, pd.read_csv(self.root / "metadata.csv"))
-        y = torch.as_tensor(self.metadata["whale_id"].factorize()[0], dtype=torch.long)
+
         x = self.metadata["path"].to_numpy()
-        super().__init__(x=x, y=y, image_dir=self.root, transform=transform)
+        y = torch.as_tensor(self.metadata["whale_id"].factorize()[0], dtype=torch.long)
+
+        vps = torch.as_tensor(self.metadata["viewpoint"].factorize()[0], dtype=torch.long)
+        years = torch.as_tensor(
+            self.metadata["date"].str.split("-", expand=True)[0].factorize()[0], dtype=torch.long
+        )
+        s = torch.stack([vps, years], dim=-1)
+
+        super().__init__(x=x, y=y, s=s, image_dir=self.root, transform=transform)
 
     def train_test_split(
         self,

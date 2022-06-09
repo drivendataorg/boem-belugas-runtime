@@ -1,11 +1,9 @@
 import json
-from multiprocessing.sharedctypes import Value
 from pathlib import Path
 
 import pandas as pd
 from sklearn.metrics import average_precision_score
 import typer
-
 
 PREDICTION_LIMIT = 20
 QUERY_ID_COL = "query_id"
@@ -41,9 +39,7 @@ class MeanAveragePrecision:
         return adjusted_aps.mean()
 
     @classmethod
-    def _score_per_query(
-        cls, predicted: pd.DataFrame, actual: pd.DataFrame, prediction_limit: int
-    ):
+    def _score_per_query(cls, predicted: pd.DataFrame, actual: pd.DataFrame, prediction_limit: int):
         """Calculates per-query mean average precision for a ranking task."""
         merged = predicted.merge(
             right=actual.assign(actual=1.0),

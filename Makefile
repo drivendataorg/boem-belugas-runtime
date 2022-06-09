@@ -44,6 +44,10 @@ ifeq (,${SUBMISSION_IMAGE})
 SUBMISSION_IMAGE := $(shell docker images -q ${REGISTRY_IMAGE})
 endif
 
+data-dir:
+	rm -rf "$(shell pwd)"/data/images
+	ln -fs /srv/galene0/shared/data/beluga/images "$(shell pwd)"/data/images
+
 # Give write access to the submission folder to everyone so Docker user can write when mounted
 _submission_write_perms:
 	chmod -R 0777 submission/
