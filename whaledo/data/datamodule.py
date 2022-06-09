@@ -12,7 +12,7 @@ from ranzen import implements
 import torchvision.transforms as T  # type: ignore
 
 from whaledo.data.dataset import SampleType, WhaledoDataset
-from whaledo.data.samplers import QueryKeySampler
+from whaledo.data.samplers import BaseSampler, QueryKeySampler
 from whaledo.transforms import ResizeAndPadToSize
 
 __all__ = ["WhaledoDataModule"]
@@ -21,6 +21,8 @@ __all__ = ["WhaledoDataModule"]
 @attr.define(kw_only=True)
 class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
     """Data-module for the 'Where's Whale-do' dataset."""
+
+    base_sampler: BaseSampler = BaseSampler.RANDOM
 
     @property
     def _default_train_transforms(self) -> ImageTform:
@@ -50,7 +52,12 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
     ) -> CdtDataLoader[SampleType]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
         base_ds = self._get_base_dataset()
-        batch_sampler = QueryKeySampler(data_source=base_ds, batch_size=batch_size, ids=base_ds.y)
+        batch_sampler = QueryKeySampler(
+            data_source=base_ds,
+            batch_size=batch_size,
+            ids=base_ds.y,
+            base_sampler=self.base_sampler,
+        )
         return self.make_dataloader(
             ds=self.train_data, batch_size=self.train_batch_size, batch_sampler=batch_sampler
         )

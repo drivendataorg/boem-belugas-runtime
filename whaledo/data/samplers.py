@@ -1,13 +1,20 @@
 from __future__ import annotations
-from typing import Iterator, Literal, Sized
+from enum import Enum
+from typing import Iterator, Sized, Union
 
 from ranzen.decorators import implements
+from ranzen.misc import str_to_enum
 from ranzen.torch.data import BatchSamplerBase
 from ranzen.torch.sampling import batched_randint
 import torch
 from torch import Tensor
 
 __all__ = ["QueryKeySampler"]
+
+
+class BaseSampler(Enum):
+    WEIGHTED = "weighted"
+    RANDOM = "random"
 
 
 class QueryKeySampler(BatchSamplerBase):
@@ -18,8 +25,9 @@ class QueryKeySampler(BatchSamplerBase):
         batch_size: int,
         ids: Tensor,
         generator: torch.Generator | None = None,
-        base_sampler: Literal["weighted", "random"] = "random",
+        base_sampler: Union[BaseSampler, str] = BaseSampler.WEIGHTED,
     ) -> None:
+        self.base_sampler = str_to_enum(base_sampler, enum=BaseSampler)
         self.data_source = data_source
         self.batch_size = batch_size
         self.generator = generator
@@ -36,7 +44,6 @@ class QueryKeySampler(BatchSamplerBase):
         self.counts = counts
         self.can_sample = can_sample
 
-        self.base_sampler = base_sampler
         if self.base_sampler == "weighted":
             _, inverse, counts = ids.unique(return_counts=True, return_inverse=True)
             id_weights = 1 - (counts / len(inverse))
