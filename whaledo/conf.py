@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 
@@ -17,7 +17,7 @@ class WandbLoggerConf:
     prefix: Optional[str] = None
     group: Optional[str] = None
     entity: Optional[str] = None
-    tags: Optional[List] = (None,)
+    tags: Optional[List] = field(default_factory=lambda: [None])
     reinit: bool = False
     job_type: Optional[str] = None
     mode: Optional[str] = None

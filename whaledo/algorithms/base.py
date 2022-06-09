@@ -42,7 +42,10 @@ class Algorithm(pl.LightningModule):
     lr_sched_freq: int = 1
     batch_transforms: Optional[List[BatchTransform]] = None
     test_on_best: bool = False
-    rmap: RetrievalMAP = field(default=RetrievalMAP())
+    rmap: RetrievalMAP = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.rmap = RetrievalMAP()
 
     def __new__(cls: type[Self], *args: Any, **kwargs: Any) -> Self:
         obj = object.__new__(cls)
