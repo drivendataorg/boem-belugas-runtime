@@ -1,0 +1,17 @@
+---
+defaults:
+  - /schema/logger: base
+  - _self_
+name: null
+save_dir: null
+offline: false
+id: null
+anonymous: null
+version: null
+log_model: false
+experiment: null
+prefix: ''
+entity: predictive-analytics-lab
+project: wheres-whale-do
+group: null
+tags: []
