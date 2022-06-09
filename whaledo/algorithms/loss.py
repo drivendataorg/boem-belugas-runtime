@@ -42,6 +42,7 @@ def supcon_loss(
     candidate_labels: T = None,
     temperature: float = 0.1,
     exclude_diagonal: bool = False,
+    symmetrize: bool = True,
 ) -> Tensor:
     # Create new variables for the candidate- variables to placate
     # the static-type checker.
@@ -73,12 +74,12 @@ def supcon_loss(
     logits = anchors[selected_rows] @ candidates_t.T
     # Apply temperature-scaling to the logits.
     logits = logits / temperature
-    z = logits.logsumexp(dim=-1).flatten()
     # Tile the row counts if dealing with multicropping.
     if anchors.ndim == 3:
         row_counts = row_counts.unsqueeze(1).expand(-1, anchors.size(1))
     counts_flat = row_counts[row_inverse].flatten()
     positives = logits[row_inverse, ..., col_inds].flatten() / counts_flat
+    z = logits.logsumexp(dim=-1).flatten()
     return (z.sum() - positives.sum()) / z.numel()
 
 

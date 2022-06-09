@@ -14,9 +14,9 @@ backbone:
   pretrained: false
 
 dm: 
-  image_size: 384
+  image_size: 224
   training_mode: step
-  train_batch_size: 128
+  train_batch_size: 32
   train_transforms: 
     _target_: torchvision.transforms.Compose
     transforms: 
@@ -35,12 +35,7 @@ trainer:
 
 alg:
   lr: 1e-4
-  temp_id: 0.1
-  sigma: 0.5
-  vmf_weighting: false
-  scl_weight: 0.0
-  op_stop_grad: false
-  temp_cd: 0.1
+  temp: 0.1
   out_dim: 256
   mlp_head: true
   scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
