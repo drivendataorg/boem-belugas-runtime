@@ -3,7 +3,7 @@ line-length = 100
 target-version = ['py37']
 
 [tool.isort]
-known_third_party = ["PIL", "loguru", "matplotlib", "pandas", "pytest", "sklearn", "torch", "torchvision", "tqdm", "typer"]
+known_third_party = ["PIL", "attr", "classy_vision", "clip", "conduit", "fairscale", "faiss", "hydra", "loguru", "matplotlib", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "sklearn", "timm", "torch", "torchmetrics", "torchvision", "tqdm", "typer", "typing_extensions", "wandb"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__"]
 line_length = 88
@@ -53,6 +53,8 @@ torch-conduit = "^0.1.1"
 timm = "0.5.4"
 loguru = "0.5.3"
 typer = "^0.4.1"
+clip = "^0.2.0"
+hydra-core = "1.1.2"
 
 [tool.poetry.extras]
 deepspeed = ["deepspeed", "triton"]

@@ -6,7 +6,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch.optim.swa_utils import AveragedModel
 
-from src.schedulers import LinearWarmup
+from whaledo.schedulers import LinearWarmup
 
 __all__ = ["MeanTeacher"]
 

@@ -4,7 +4,6 @@ from typing import Any, Optional, Protocol, Tuple, TypeVar
 
 from conduit.logging import init_logger
 from ranzen.decorators import implements
-from src.data.datamodules.base import WILDSDataModule  # type: ignore
 from torch import Tensor
 import torch.nn as nn
 from typing_extensions import Final, Self, TypeAlias
