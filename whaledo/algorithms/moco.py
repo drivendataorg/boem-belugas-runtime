@@ -42,8 +42,7 @@ class Moco(Algorithm):
     temp_id: float = 1.0
     dcl: bool = True
     temp_cd: float = 0.1
-    scl_weight: float = 1.0
-    op_stop_grad: bool = True
+    supcon_weight: float = 1.0
 
     logit_mb: MemoryBank = field(init=False)
     label_mb: Optional[MemoryBank] = field(init=False)
@@ -53,7 +52,7 @@ class Moco(Algorithm):
             raise AttributeError("'temp_id' must be positive.")
         if self.temp_cd <= 0:
             raise AttributeError("'temp_cd' must be positive.")
-        if self.scl_weight < 0:
+        if self.supcon_weight < 0:
             raise AttributeError("'loss_s_weight' must be non-negative.")
         if not (0 <= self.ema_decay_start < 1):
             raise AttributeError("'ema_decay_start' must be in the range [0, 1).")
@@ -80,7 +79,7 @@ class Moco(Algorithm):
         self.logit_mb = MemoryBank.with_l2_hypersphere_init(
             dim=self.out_dim, capacity=self.mb_capacity
         )
-        if self.scl_weight > 0:
+        if self.supcon_weight > 0:
             self.label_mb = MemoryBank.with_constant_init(
                 dim=1, capacity=self.mb_capacity, value=self.IGNORE_INDEX, dtype=torch.long
             )
@@ -137,27 +136,27 @@ class Moco(Algorithm):
 
         self.logit_mb.push(teacher_logits)
 
-        cd_loss = None
+        sc_loss = None
         if self.label_mb is not None:
             labels_past = self.label_mb.clone()
             lp_mask = (labels_past != self.IGNORE_INDEX).squeeze(-1)
             if lp_mask.count_nonzero():
-                cd_loss = supcon_loss(
+                sc_loss = supcon_loss(
                     anchors=student_logits,
                     anchor_labels=batch.y,
                     candidates=logits_past[lp_mask],
                     candidate_labels=labels_past[lp_mask],
                     temperature=self.temp_cd,
                 )
-                loss += cd_loss
+                loss += sc_loss
             self.label_mb.push(batch.y)
 
         logging_dict = {
             "instance_discrimination": to_item(id_loss),
             "total": to_item(loss),
         }
-        if cd_loss is not None:
-            logging_dict["class_discrimination"] = to_item(cd_loss)
+        if sc_loss is not None:
+            logging_dict["supcon"] = to_item(sc_loss)
 
         logging_dict = prefix_keys(
             dict_=logging_dict,
