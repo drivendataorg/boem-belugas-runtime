@@ -1,3 +1,0 @@
-scenario_id,queries_path,database_path
-scenario01,queries/scenario01.csv,databases/scenario01.csv
-scenario02,queries/scenario02.csv,databases/scenario02.csv
