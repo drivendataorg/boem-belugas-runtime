@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterator, Sized
+from typing import Iterator, Literal, Sized
 
 from ranzen.decorators import implements
 from ranzen.torch.data import BatchSamplerBase
@@ -18,6 +18,7 @@ class QueryKeySampler(BatchSamplerBase):
         batch_size: int,
         ids: Tensor,
         generator: torch.Generator | None = None,
+        base_sampler: Literal["weighted", "random"] = "random",
     ) -> None:
         self.data_source = data_source
         self.batch_size = batch_size
@@ -34,9 +35,14 @@ class QueryKeySampler(BatchSamplerBase):
         counts[no_pairs] = len(no_pairs) - 1
         self.counts = counts
         self.can_sample = can_sample
-        _, inverse, counts = ids.unique(return_counts=True, return_inverse=True)
-        id_weights = 1 - (counts / len(inverse))
-        self.sample_weights = id_weights[inverse]
+
+        self.base_sampler = base_sampler
+        if self.base_sampler == "weighted":
+            _, inverse, counts = ids.unique(return_counts=True, return_inverse=True)
+            id_weights = 1 - (counts / len(inverse))
+            self.sample_weights = id_weights[inverse]
+        else:
+            self.sample_weights = None
 
         super().__init__(epoch_length=None)
 
@@ -55,11 +61,19 @@ class QueryKeySampler(BatchSamplerBase):
     @implements(BatchSamplerBase)
     def __iter__(self) -> Iterator[list[int]]:
         while True:
-            batch_idxs = torch.multinomial(
-                self.sample_weights,
-                num_samples=self.batch_size,
-                replacement=True,
-                generator=self.generator,
-            )
+            if self.sample_weights is None:
+                batch_idxs = torch.randint(
+                    low=0,
+                    high=len(self.data_source),
+                    generator=self.generator,
+                    size=(self.batch_size,),
+                )
+            else:
+                batch_idxs = torch.multinomial(
+                    self.sample_weights,
+                    num_samples=self.batch_size,
+                    replacement=True,
+                    generator=self.generator,
+                )
             batch_idxs = self._add_key_idxs(batch_idxs)
             yield batch_idxs.tolist()
