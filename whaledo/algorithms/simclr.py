@@ -77,7 +77,7 @@ class SimClr(Algorithm):
         logits = torch.cat((logits_v1, logits_v2), dim=0)
         loss = supcon_loss(
             anchors=logits,
-            anchor_labels=batch.y,
+            anchor_labels=batch.y.repeat(2),
             temperature=self.temp,
             exclude_diagonal=True,
         )

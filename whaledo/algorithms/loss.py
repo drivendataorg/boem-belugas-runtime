@@ -44,6 +44,8 @@ def supcon_loss(
     exclude_diagonal: bool = False,
     symmetrize: bool = True,
 ) -> Tensor:
+    if len(anchors) != len(anchor_labels):
+        raise ValueError("'anchors' and 'anchor_labels' must match in size at dimension 0.")
     # Create new variables for the candidate- variables to placate
     # the static-type checker.
     if candidates is None:
@@ -54,6 +56,10 @@ def supcon_loss(
     else:
         candidates_t = candidates
         candidate_labels_t = cast(Tensor, candidate_labels)
+        if len(candidates_t) != len(candidate_labels_t):
+            raise ValueError(
+                "'candidates' and 'candidate_labels' must match in size at dimension 0."
+            )
 
     anchor_labels = anchor_labels.view(-1, 1)
     candidate_labels_t = candidate_labels_t.flatten()
