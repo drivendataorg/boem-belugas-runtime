@@ -60,5 +60,5 @@ EvalEpochOutput: TypeAlias = List[EvalStepOutput]
 @dataclass(unsafe_hash=True)
 class Prediction:
     query_inds: Tensor
-    pos_inds: Tensor
+    retrieved_inds: Tensor
     scores: Tensor

@@ -11,7 +11,6 @@ from classy_vision.models.anynet import (  # type: ignore
     StemType,
 )
 from classy_vision.models.regnet import RegNetParams  # type: ignore
-import clip  # type: ignore
 from conduit.logging import init_logger
 from hydra.utils import to_absolute_path
 from ranzen.decorators import implements
@@ -26,7 +25,6 @@ from whaledo.models.base import BackboneFactory, ModelFactoryOut
 
 __all__ = [
     "Beit",
-    "Clip",
     "ConvNeXt",
     "RegNet",
     "ResNet",
@@ -73,35 +71,6 @@ class ResNet(BackboneFactory):
         out_dim = model.fc.in_features
         model.fc = nn.Identity()  # type: ignore
         return model, out_dim
-
-
-class ClipVersion(Enum):
-    RN50 = "RN50"
-    RN101 = "RN101"
-    RN50x4 = "RN50x4"
-    RN50x16 = "RN50x16"
-    RN50x64 = "RN50x64"
-    ViT_B32 = "ViT-B/32"
-    ViT_B16 = "ViT-B/16"
-    ViT_L14 = "ViT-L/14"
-
-
-@dataclass
-class Clip(BackboneFactory):
-    download_root: Optional[str] = None
-    version: ClipVersion = ClipVersion.RN50
-    in_channels: int = 3
-
-    @implements(BackboneFactory)
-    def __call__(self) -> ModelFactoryOut[clip.model.CLIP]:  # type: ignore
-
-        model, _ = clip.load(
-            name=self.version.value, device="cpu", download_root=self.download_root  # type: ignore
-        )
-        visual_model = model.visual
-        expand_in_channels_(visual_model.conv1, in_channels=self.in_channels)
-        out_dim = visual_model.output_dim
-        return visual_model, out_dim
 
 
 @dataclass
