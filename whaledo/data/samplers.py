@@ -9,7 +9,7 @@ from ranzen.torch.sampling import batched_randint
 import torch
 from torch import Tensor
 
-__all__ = ["QueryKeySampler"]
+__all__ = ["QueryKeySampler", "BaseSampler"]
 
 
 class BaseSampler(Enum):
