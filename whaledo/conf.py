@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional
 
 
 @dataclass
@@ -17,7 +17,7 @@ class WandbLoggerConf:
     prefix: Optional[str] = None
     group: Optional[str] = None
     entity: Optional[str] = None
-    tags: Optional[Sequence] = (None,)
+    tags: Optional[List] = (None,)
     reinit: bool = False
     job_type: Optional[str] = None
     mode: Optional[str] = None

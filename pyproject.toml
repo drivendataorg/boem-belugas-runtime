@@ -45,7 +45,6 @@ typing-extensions = ">=4.0"
 deepspeed = { version = "^0.5.10", platform = "linux", optional = true }
 triton = { version = "1.0.0", platform = "linux",  optional = true }
 wrapt = "<1.14,>=1.11"
-omegaconf = "2.1.2"
 einops = "0.4.1"
 albumentations = "1.0.3"
 transformers = "^4.19.2"
@@ -53,7 +52,7 @@ torch-conduit = "^0.1.1"
 timm = "0.5.4"
 loguru = "0.5.3"
 typer = "^0.4.1"
-hydra-core = "1.1.2"
+hydra-core = "^1.2.0"
 
 [tool.poetry.extras]
 deepspeed = ["deepspeed", "triton"]
