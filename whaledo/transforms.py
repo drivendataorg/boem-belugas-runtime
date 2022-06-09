@@ -1,7 +1,17 @@
 from dataclasses import dataclass
 import math
 import random
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import (
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from PIL import Image, ImageFilter, ImageOps
 from conduit.data.constants import IMAGENET_STATS
@@ -23,7 +33,7 @@ import torch
 from torch import Tensor
 import torchvision.transforms as T  # type: ignore
 import torchvision.transforms.functional as TF  # type: ignore
-from typing_extensions import Protocol, Self
+from typing_extensions import Protocol, Self, TypeAlias
 
 __class__ = [
     "BatchTransform",
@@ -339,9 +349,15 @@ class MultiCropTransform(Generic[LT]):
         )
 
 
+_Resample: TypeAlias = Literal[0, 1, 2, 3, 4, 5]
+
+
 class ResizeAndPadToSize:
-    def __init__(self, size: int) -> None:
+    resample: Optional[_Resample]
+
+    def __init__(self, size: int, *, resample: Optional[_Resample] = Image.BILINEAR) -> None:
         self.size = size
+        self.resample = resample
 
     def __call__(self, img: Image.Image) -> Image.Image:
         w, h = img.size
@@ -349,16 +365,16 @@ class ResizeAndPadToSize:
             img = img.resize(size=(self.size, self.size))
         if h > w:
             new_w = round(w / h * self.size)
-            img = img.resize(size=(new_w, self.size))
+            img = img.resize(size=(new_w, self.size), resample=self.resample)
             half_residual = (self.size - new_w) / 2
-            pad_left = math.ceil(half_residual)
-            pad_right = math.floor(half_residual)
-            img = TF.pad(img, padding=[pad_left, 0, pad_right, 0])  # type: ignore
+            left_padding = math.ceil(half_residual)
+            right_padding = math.floor(half_residual)
+            img = TF.pad(img, padding=[left_padding, 0, right_padding, 0])  # type: ignore
         else:
             new_h = round(h / w * self.size)
-            img = img.resize(size=(self.size, new_h))
+            img = img.resize(size=(self.size, new_h), resample=self.resample)
             half_residual = (self.size - new_h) / 2
-            pad_top = math.ceil(half_residual)
-            pad_bottom = math.floor(half_residual)
-            img = TF.pad(img, padding=[0, pad_top, 0, pad_bottom])  # type: ignore
+            top_padding = math.ceil(half_residual)
+            bottom_padding = math.floor(half_residual)
+            img = TF.pad(img, padding=[0, top_padding, 0, bottom_padding])  # type: ignore
         return img

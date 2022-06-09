@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 import operator
 from typing import Any, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -16,7 +16,7 @@ from ranzen.torch.data import TrainingMode
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
-from torchmetrics.functional import average_precision
+from torchmetrics.retrieval.average_precision import RetrievalMAP
 from typing_extensions import Self
 
 from whaledo.models import MetaModel, Model
@@ -42,6 +42,7 @@ class Algorithm(pl.LightningModule):
     lr_sched_freq: int = 1
     batch_transforms: Optional[List[BatchTransform]] = None
     test_on_best: bool = False
+    rmap: RetrievalMAP = field(default=RetrievalMAP())
 
     def __new__(cls: type[Self], *args: Any, **kwargs: Any) -> Self:
         obj = object.__new__(cls)
@@ -101,15 +102,9 @@ class Algorithm(pl.LightningModule):
     @torch.no_grad()
     def _evaluate(self, outputs: EvalOutputs) -> MetricDict:
         same_id = (outputs.ids.unsqueeze(1) == outputs.ids).long()
-        prediction = self.model.predict(queries=outputs.logits)
-        y_true = same_id.gather(1, prediction.pos_inds)
-        map = average_precision(
-            preds=prediction.scores,
-            target=y_true,
-            pos_label=1,
-            average="macro",
-        )
-        assert isinstance(map, Tensor)
+        pred = self.model.predict(queries=outputs.logits)
+        y_true = same_id[pred.retrieved_inds]
+        map = self.rmap(preds=pred.scores, target=y_true, indexes=pred.query_inds)
         return {"mean_average_precision": map.item()}
 
     def _epoch_end(self, outputs: Union[List[EvalOutputs], EvalEpochOutput]) -> MetricDict:

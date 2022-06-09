@@ -1,17 +1,18 @@
 """Whaledo data-module."""
-from typing import Any, List
+from typing import Any, List, Optional
 
 import attr
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import ImageTform
+from conduit.data.datasets.utils import CdtDataLoader, ImageTform
 from conduit.data.structures import TrainValTestSplit
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
 import torchvision.transforms as T  # type: ignore
 
 from whaledo.data.dataset import SampleType, WhaledoDataset
+from whaledo.data.samplers import QueryKeySampler
 from whaledo.transforms import ResizeAndPadToSize
 
 __all__ = ["WhaledoDataModule"]
@@ -43,3 +44,13 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
         all_data = WhaledoDataset(root=self.root, transform=None)
         train, test = all_data.train_test_split(prop=self.test_prop, seed=self.seed)
         return TrainValTestSplit(train=train, val=test, test=test)
+
+    def train_dataloader(
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
+    ) -> CdtDataLoader[SampleType]:
+        batch_size = self.train_batch_size if batch_size is None else batch_size
+        base_ds = self._get_base_dataset()
+        batch_sampler = QueryKeySampler(data_source=base_ds, batch_size=batch_size, ids=base_ds.y)
+        return self.make_dataloader(
+            ds=self.train_data, batch_size=self.train_batch_size, batch_sampler=batch_sampler
+        )

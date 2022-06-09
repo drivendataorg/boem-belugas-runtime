@@ -69,10 +69,10 @@ class Model(nn.Module):
         scores, topk_inds = probs.topk(dim=1, largest=True, k=k)
         mask = self.threshold_scores(scores=scores)
         mask_inds = mask.nonzero(as_tuple=True)
-        scores, pos_inds = scores[mask_inds], topk_inds[mask_inds]
+        scores, retrieved_inds = scores[mask_inds], topk_inds[mask_inds]
 
         return Prediction(
             query_inds=mask_inds[0],
-            pos_inds=pos_inds,
+            retrieved_inds=retrieved_inds,
             scores=scores,
         )
