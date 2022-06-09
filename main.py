@@ -7,7 +7,6 @@ from whaledo.algorithms import Moco, SimClr
 from whaledo.data.datamodule import WhaledoDataModule
 from whaledo.models.artifact import ArtifactLoader
 from whaledo.models.backbones import Beit, Clip, ConvNeXt, RegNet, ResNet, Swin, ViT
-from whaledo.models.meta import LinearProbe
 from whaledo.models.meta.ema import EmaModel
 from whaledo.models.meta.ft import BitFit
 from whaledo.relay import WhaledoRelay
@@ -36,7 +35,6 @@ if __name__ == "__main__":
     mm_ops: list[Option] = [
         Option(BitFit, "bitfit"),
         Option(EmaModel, "ema"),
-        Option(LinearProbe, "lp"),
     ]
 
     WhaledoRelay.with_hydra(
