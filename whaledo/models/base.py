@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 import logging
-from typing import Any, Optional, Protocol, Tuple, TypeVar
+from typing import Any, Optional, Tuple, TypeVar
 
 from conduit.logging import init_logger
 from ranzen.decorators import implements
 from torch import Tensor
 import torch.nn as nn
-from typing_extensions import Final, Self, TypeAlias
+from typing_extensions import Self, TypeAlias
 
 from whaledo.types import Prediction
 
@@ -15,8 +15,6 @@ __all__ = [
     "Model",
 ]
 
-# Number of positive predictions for a given sample is capped at 20.
-K_MAX: Final[int] = 20
 M = TypeVar("M", bound=nn.Module)
 ModelFactoryOut: TypeAlias = Tuple[M, int]
 
@@ -51,7 +49,14 @@ class Model(nn.Module):
     def threshold_scores(self, scores: Tensor) -> Tensor:
         return scores > self.threshold
 
-    def predict(self, queries: Tensor, *, db: Optional[Tensor] = None) -> Prediction:
+    def predict(
+        self,
+        queries: Tensor,
+        *,
+        db: Optional[Tensor] = None,
+        k: int = 20,
+        sorted: bool = True,
+    ) -> Prediction:
         mask_diag = False
         if db is None:
             db = queries
@@ -59,20 +64,23 @@ class Model(nn.Module):
 
         sim_mat = queries @ db.T
         db_size = sim_mat.size(1)
+
+        probs = sim_mat.softmax(dim=1)
         if mask_diag:
             # Mask the diagonal to prevent self matches.
-            sim_mat.fill_diagonal_(0)
+            probs.fill_diagonal_(0)
             db_size -= 1
 
-        k = min(K_MAX, db_size)
-        probs = sim_mat.softmax(dim=1)
-        scores, topk_inds = probs.topk(dim=1, largest=True, k=k)
+        k = min(k, db_size)
+        scores, topk_inds = probs.topk(dim=1, k=k, sorted=sorted)
         mask = self.threshold_scores(scores=scores)
+        n_retrieved_per_query = mask.count_nonzero(dim=1)
         mask_inds = mask.nonzero(as_tuple=True)
         scores, retrieved_inds = scores[mask_inds], topk_inds[mask_inds]
 
         return Prediction(
             query_inds=mask_inds[0],
             retrieved_inds=retrieved_inds,
+            n_retrieved_per_query=n_retrieved_per_query,
             scores=scores,
         )

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any, Optional, ParamSpec, Union
 
 from ranzen.decorators import implements
 from torch import Tensor
@@ -10,6 +10,9 @@ from whaledo.models.base import Model
 from whaledo.types import Prediction
 
 __all__ = ["MetaModel"]
+
+
+P = ParamSpec("P")
 
 
 @dataclass(unsafe_hash=True)
@@ -33,5 +36,7 @@ class MetaModel(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         return self.model.forward(x=x)
 
-    def predict(self, queries: Tensor, *, db: Optional[Tensor] = None) -> Prediction:
-        return self.model.predict(queries=queries, db=db)
+    def predict(
+        self, queries: Tensor, *, db: Optional[Tensor] = None, k: int = 20, sorted: bool = True
+    ) -> Prediction:
+        return self.model.predict(queries=queries, db=db, k=k, sorted=sorted)

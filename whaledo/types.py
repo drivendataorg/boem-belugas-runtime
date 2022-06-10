@@ -64,6 +64,7 @@ EvalEpochOutput: TypeAlias = List[EvalStepOutput]
 class Prediction:
     query_inds: Tensor
     retrieved_inds: Tensor
+    n_retrieved_per_query: Tensor
     scores: Tensor
 
     def __post_init__(self) -> None:

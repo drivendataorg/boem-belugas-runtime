@@ -1,10 +1,9 @@
 import math
-from typing import Callable, Optional, Type, TypeVar, cast
+from typing import Callable, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
 import torch.nn as nn
-from torch.types import Number
 from typing_extensions import Self
 
 __all__ = [
@@ -20,7 +19,7 @@ def moco_loss(
     *,
     positives: Tensor,
     negatives: Tensor,
-    temperature: float = 1.0,
+    temperature: Union[float, Tensor] = 1.0,
     dcl: bool = True,
 ) -> Tensor:
     # positive logits: (N,)
@@ -58,7 +57,7 @@ def supcon_loss(
     anchor_labels: Tensor,
     candidates: T = None,
     candidate_labels: T = None,
-    temperature: float = 0.1,
+    temperature: Union[float, Tensor] = 0.1,
     exclude_diagonal: bool = False,
     dcl: bool = True,
 ) -> Tensor:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import ClassVar, Optional, TypeVar
+import math
+from typing import ClassVar, Optional, TypeVar, Union
 
 from conduit.data.structures import BinarySample
 from conduit.models.utils import prefix_keys
@@ -10,6 +11,7 @@ from ranzen import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 from typing_extensions import TypeAlias
 
 from whaledo.algorithms.base import Algorithm
@@ -45,16 +47,18 @@ class Moco(Algorithm):
     ema_decay_end: float = 0.999
     ema_warmup_steps: int = 0
 
-    temp: float = 1.0
+    temp0: float = 1.0
+    learn_temp: bool = False
     loss_fn: LossFn = LossFn.SUPCON
     dcl: bool = True
 
+    _temp: Union[float, Parameter] = field(init=False)
     logit_mb: MemoryBank = field(init=False)
     label_mb: Optional[MemoryBank] = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.temp <= 0:
-            raise AttributeError("'temp_id' must be positive.")
+        if self.temp0 <= 0:
+            raise AttributeError("'temp0' must be positive.")
         if not (0 <= self.ema_decay_start <= 1):
             raise AttributeError("'ema_decay_start' must be in the range [0, 1].")
         if not (0 <= self.ema_decay_end <= 1):
@@ -86,6 +90,22 @@ class Moco(Algorithm):
             )
         else:
             self.label_mb = None
+        self.temp = self.temp0
+
+    @property
+    def temp(self) -> Union[Tensor, float]:
+        if isinstance(self._temp, Tensor):
+            return F.softplus(self._temp)
+        return self._temp
+
+    @temp.setter
+    def temp(self, value: float) -> None:
+        if value <= 0:
+            raise AttributeError("'temp' must be positive.")
+        if self.learn_temp:
+            self._temp = Parameter(torch.tensor(math.log(math.exp(value) - 1)))
+        else:
+            self._temp = value
 
     @implements(Algorithm)
     def on_after_batch_transfer(

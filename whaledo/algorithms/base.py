@@ -13,11 +13,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from ranzen.torch.data import TrainingMode
+from sklearn.metrics import average_precision_score
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
 from torchmetrics.retrieval.average_precision import RetrievalMAP
-from typing_extensions import Self
+from typing_extensions import Final, Self
 
 from whaledo.models import MetaModel, Model
 from whaledo.transforms import BatchTransform
@@ -26,6 +27,8 @@ from whaledo.types import EvalEpochOutput, EvalOutputs, EvalStepOutput
 __all__ = ["Algorithm"]
 
 T = TypeVar("T", bound=Union[Tensor, NamedSample[Tensor]])
+
+PREDICTION_LIMIT: Final[int] = 20
 
 
 @dataclass(unsafe_hash=True)
@@ -101,10 +104,20 @@ class Algorithm(pl.LightningModule):
     @torch.no_grad()
     def _evaluate(self, outputs: EvalOutputs) -> MetricDict:
         same_id = (outputs.ids.unsqueeze(1) == outputs.ids).long()
-        pred = self.model.predict(queries=outputs.logits)
-        y_true = same_id[pred.query_inds, pred.retrieved_inds]
-        map = RetrievalMAP()(preds=pred.scores, target=y_true, indexes=pred.query_inds)
-        return {"mean_average_precision": map.item()}
+        preds = self.model.predict(queries=outputs.logits, k=len(same_id))
+        y_true = same_id[preds.query_inds, preds.retrieved_inds]
+        rmap = RetrievalMAP()(preds=preds.scores, target=y_true, indexes=preds.query_inds)
+
+        # predicted_n_pos = preds.n_retrieved_per_query
+        # actual_n_pos = (same_id.count_nonzero(dim=1) - 1).clamp_max(PREDICTION_LIMIT)
+        # sample_weights = predicted_n_pos / actual_n_pos
+        # adjusted_aps = average_precision_score(
+        #     y_score=preds.scores.numpy(),
+        #     y_true=y_true.numpy(),
+        #     sample_weight=sample_weights[preds.query_inds].numpy(),
+        #     average="sample",
+        # )
+        return {"mean_average_precision": rmap.item()}
 
     def _epoch_end(self, outputs: Union[List[EvalOutputs], EvalEpochOutput]) -> MetricDict:
         outputs_agg = reduce(operator.add, outputs)

@@ -1,5 +1,6 @@
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+import math
+from typing import Optional, Union
 
 from conduit.data.structures import BinarySample
 from conduit.logging import init_logger
@@ -10,6 +11,7 @@ from ranzen import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 from typing_extensions import TypeAlias
 
 from whaledo.algorithms.base import Algorithm
@@ -31,12 +33,14 @@ class SimClr(Algorithm):
 
     out_dim: int = 256
     mlp_head: bool = True
-    temp: float = 1.0
-    temp_cd: float = 1.0
+    temp0: float = 1.0
+    learn_temp: bool = False
+
+    _temp: Union[float, Parameter] = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.temp <= 0:
-            raise AttributeError("'temp' must be positive.")
+        if self.temp0 <= 0:
+            raise AttributeError("'temp0' must be positive.")
 
         # initialise the encoders
         embed_dim = self.model.feature_dim
@@ -44,6 +48,21 @@ class SimClr(Algorithm):
         if self.mlp_head:
             head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), head)
         self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
+
+    @property
+    def temp(self) -> Union[Tensor, float]:
+        if isinstance(self._temp, Tensor):
+            return F.softplus(self._temp)
+        return self._temp
+
+    @temp.setter
+    def temp(self, value: float) -> None:
+        if value <= 0:
+            raise AttributeError("'temp' must be positive.")
+        if self.learn_temp:
+            self._temp = Parameter(torch.tensor(math.log(math.exp(value) - 1)))
+        else:
+            self._temp = value
 
     @implements(Algorithm)
     def on_after_batch_transfer(

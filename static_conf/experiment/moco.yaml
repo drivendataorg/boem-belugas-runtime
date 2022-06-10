@@ -37,7 +37,7 @@ alg:
   out_dim: 256
   mlp_head: true
   loss_fn: SUPCON
-  temp: 1.0
+  temp0: 1.0
   dcl: true
   mb_capacity: 16384
   ema_warmup_steps: ${ trainer.max_steps } 
