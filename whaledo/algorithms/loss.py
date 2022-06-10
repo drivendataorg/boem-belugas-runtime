@@ -1,8 +1,10 @@
+import math
 from typing import Callable, Optional, Type, TypeVar, cast
 
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torch.types import Number
 from typing_extensions import Self
 
 __all__ = [
@@ -34,6 +36,22 @@ def moco_loss(
 T = TypeVar("T", Tensor, None)
 
 
+def logsumexp(input: Tensor, *, dim: int, keepdim: bool = False, mask: Optional[Tensor] = None):
+    """Numerically stable logsumexp on the last dim of `inputs`.
+    reference: https://github.com/pytorch/pytorch/issues/2591
+    """
+    if mask is None:
+        return input.logsumexp(dim=dim, keepdim=keepdim)
+    eps = torch.finfo(input.dtype).eps
+    max_offset = eps * mask.to(input.dtype)
+    max_ = torch.max(input, dim=dim, keepdim=True).values
+    input = input - max_
+    if keepdim is False:
+        max_ = max_.squeeze(dim)
+    input_exp_m = input.exp() * mask
+    return max_ + input_exp_m.sum(dim=dim, keepdim=keepdim).log()
+
+
 def supcon_loss(
     anchors: Tensor,
     *,
@@ -42,7 +60,7 @@ def supcon_loss(
     candidate_labels: T = None,
     temperature: float = 0.1,
     exclude_diagonal: bool = False,
-    symmetrize: bool = True,
+    dcl: bool = True,
 ) -> Tensor:
     if len(anchors) != len(anchor_labels):
         raise ValueError("'anchors' and 'anchor_labels' must match in size at dimension 0.")
@@ -85,7 +103,17 @@ def supcon_loss(
         row_counts = row_counts.unsqueeze(1).expand(-1, anchors.size(1))
     counts_flat = row_counts[row_inverse].flatten()
     positives = logits[row_inverse, ..., col_inds].flatten() / counts_flat
-    z = logits.logsumexp(dim=-1).flatten()
+
+    z_mask = None
+    if exclude_diagonal:
+        z_mask = ~torch.eye(len(logits), dtype=torch.bool, device=logits.device)
+    if dcl:
+        dcl_mask = ~mask
+        if z_mask is None:
+            z_mask = dcl_mask
+        else:
+            z_mask |= dcl_mask
+    z = logsumexp(logits, dim=-1, mask=z_mask).flatten()
     return (z.sum() - positives.sum()) / z.numel()
 
 

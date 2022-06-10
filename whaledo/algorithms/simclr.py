@@ -80,6 +80,7 @@ class SimClr(Algorithm):
             anchor_labels=batch.y.repeat(2),
             temperature=self.temp,
             exclude_diagonal=True,
+            dcl=True,
         )
 
         logging_dict = {"supcon": to_item(loss)}

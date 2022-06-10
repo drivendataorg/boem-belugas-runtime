@@ -18,7 +18,6 @@ import timm  # type: ignore
 import timm.models as tm  # type: ignore
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
 import torchvision.models as tvm  # type: ignore
 
 from whaledo.models.base import BackboneFactory, ModelFactoryOut
@@ -34,21 +33,6 @@ __all__ = [
 
 
 LOGGER = init_logger(__file__)
-
-
-@torch.no_grad()
-def expand_in_channels_(conv: nn.Conv2d, *, in_channels: int) -> None:
-    in_channels_curr = conv.weight.size(1)
-    if in_channels == in_channels_curr:
-        return None
-    elif in_channels < in_channels_curr:
-        raise ValueError("'in_channels' cannot be less than the current number of input channels.")
-    rgb_mean = conv.weight.mean(dim=1, keepdim=True)
-    weight_padding = rgb_mean.expand(-1, in_channels - in_channels_curr, -1, -1)
-    new_weight = Parameter(torch.cat((conv.weight, weight_padding), dim=1))
-    new_weight *= in_channels_curr / in_channels
-    conv.weight = new_weight
-    conv.in_channels = in_channels
 
 
 class ResNetVersion(Enum):
@@ -67,7 +51,6 @@ class ResNet(BackboneFactory):
     @implements(BackboneFactory)
     def __call__(self) -> ModelFactoryOut[tvm.ResNet]:
         model: tvm.ResNet = getattr(tvm, f"resnet{self.version.value}")(pretrained=self.pretrained)
-        expand_in_channels_(model.conv1, in_channels=self.in_channels)
         out_dim = model.fc.in_features
         model.fc = nn.Identity()  # type: ignore
         return model, out_dim
@@ -189,7 +172,6 @@ class ConvNeXt(BackboneFactory):
         model: tm.ConvNeXt = timm.create_model(
             self.version.value, pretrained=self.pretrained, checkpoint_path=self.checkpoint_path
         )
-        expand_in_channels_(cast(nn.Conv2d, model.stem[0]), in_channels=self.in_channels)
         model.head = nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten())
         return model, model.num_features
 

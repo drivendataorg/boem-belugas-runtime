@@ -1,11 +1,11 @@
 # @package _global_
 
-# usage: +experiment=simclr
+# usage: +experiment=moco
 
 defaults:
     - override /dm: whaledo
     - override /backbone: beit
-    - override /alg: simclr
+    - override /alg: moco
     - override /logger: whaledo
     - _self_
 
@@ -34,9 +34,15 @@ trainer:
 
 alg:
   lr: 1e-4
-  temp: 0.1
   out_dim: 256
   mlp_head: true
+  loss_fn: SUPCON
+  temp: 1.0
+  dcl: true
+  mb_capacity: 16384
+  ema_warmup_steps: ${ trainer.max_steps } 
+  ema_decay_start: 0.96
+  ema_decay_end: 1.0
   scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
   scheduler_kwargs:
     warmup_iters: 5000
@@ -44,5 +50,5 @@ alg:
     lr_start: 5e-7
 
 logger:
-  group: simclr
+  group: moco
 
