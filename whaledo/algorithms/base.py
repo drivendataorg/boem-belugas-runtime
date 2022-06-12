@@ -4,6 +4,7 @@ from functools import reduce
 import operator
 from typing import Any, List, Mapping, Optional, Tuple, TypeVar, Union
 
+from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.structures import BinarySample, NamedSample
 from conduit.models.utils import prefix_keys
 from conduit.types import LRScheduler, MetricDict, Stage
@@ -187,9 +188,10 @@ class Algorithm(pl.LightningModule):
         return self.model(x)
 
     def _run_internal(
-        self, datamodule: pl.LightningDataModule, *, trainer: pl.Trainer, test: bool = True
+        self, datamodule: CdtVisionDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         # Run routines to tune hyperparameters before training.
+        self.lr *= datamodule.train_batch_size / 256  # linear scaling rule
         trainer.tune(model=self, datamodule=datamodule)
         # Train the model
         trainer.fit(model=self, datamodule=datamodule)

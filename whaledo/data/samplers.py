@@ -22,14 +22,14 @@ class QueryKeySampler(BatchSamplerBase):
         self,
         data_source: Sized,
         *,
-        batch_size: int,
+        num_queries_per_batch: int,
         ids: Tensor,
         generator: torch.Generator | None = None,
         base_sampler: Union[BaseSampler, str] = BaseSampler.WEIGHTED,
     ) -> None:
         self.base_sampler = str_to_enum(base_sampler, enum=BaseSampler)
         self.data_source = data_source
-        self.batch_size = batch_size
+        self.num_queris_per_batch = num_queries_per_batch
         self.generator = generator
 
         can_sample = ids[:, None] == ids
@@ -73,12 +73,12 @@ class QueryKeySampler(BatchSamplerBase):
                     low=0,
                     high=len(self.data_source),
                     generator=self.generator,
-                    size=(self.batch_size,),
+                    size=(self.num_queris_per_batch,),
                 )
             else:
                 batch_idxs = torch.multinomial(
                     self.sample_weights,
-                    num_samples=self.batch_size,
+                    num_samples=self.num_queris_per_batch,
                     replacement=True,
                     generator=self.generator,
                 )

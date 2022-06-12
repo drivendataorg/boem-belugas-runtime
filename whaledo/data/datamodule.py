@@ -1,4 +1,5 @@
 """Whaledo data-module."""
+
 from typing import Any, List, Optional
 
 import attr
@@ -53,9 +54,15 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
     ) -> CdtDataLoader[SampleType]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
         base_ds = self._get_base_dataset()
+        if batch_size & 1:
+            self.logger.info(
+                "train_batch_size is not an even number: rounding down to the nearest multiple of "
+                "two to ensure the effective batch size is upperjbounded by the requested "
+                "batch size."
+            )
         batch_sampler = QueryKeySampler(
             data_source=base_ds,
-            batch_size=batch_size,
+            num_queries_per_batch=batch_size // 2,
             ids=base_ds.y,
             base_sampler=self.base_sampler,
         )

@@ -48,6 +48,7 @@ class SimClr(Algorithm):
         if self.mlp_head:
             head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), head)
         self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
+        self.temp = self.temp0
 
     @property
     def temp(self) -> Union[Tensor, float]:
