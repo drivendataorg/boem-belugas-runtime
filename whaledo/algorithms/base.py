@@ -14,7 +14,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from ranzen.torch.data import TrainingMode
-from sklearn.metrics import average_precision_score
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
@@ -35,7 +34,8 @@ PREDICTION_LIMIT: Final[int] = 20
 @dataclass(unsafe_hash=True)
 class Algorithm(pl.LightningModule):
     model: Union[Model, MetaModel]
-    lr: float = 5.0e-5
+    base_lr: float = 1.0e-4
+    lr: float = base_lr
     optimizer_cls: str = "torch.optim.AdamW"
     optimizer_kwargs: Optional[DictConfig] = None
     use_sam: bool = False
@@ -108,6 +108,8 @@ class Algorithm(pl.LightningModule):
         preds = self.model.predict(queries=outputs.logits, k=len(same_id))
         y_true = same_id[preds.query_inds, preds.retrieved_inds]
         rmap = RetrievalMAP()(preds=preds.scores, target=y_true, indexes=preds.query_inds)
+
+        # from sklearn.metrics import average_precision_score
 
         # predicted_n_pos = preds.n_retrieved_per_query
         # actual_n_pos = (same_id.count_nonzero(dim=1) - 1).clamp_max(PREDICTION_LIMIT)
@@ -191,7 +193,7 @@ class Algorithm(pl.LightningModule):
         self, datamodule: CdtVisionDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         # Run routines to tune hyperparameters before training.
-        self.lr *= datamodule.train_batch_size / 256  # linear scaling rule
+        self.lr = self.base_lr * datamodule.train_batch_size / 256  # linear scaling rule
         trainer.tune(model=self, datamodule=datamodule)
         # Train the model
         trainer.fit(model=self, datamodule=datamodule)
@@ -205,6 +207,6 @@ class Algorithm(pl.LightningModule):
         return self
 
     def run(
-        self, datamodule: pl.LightningDataModule, *, trainer: pl.Trainer, test: bool = True
+        self, datamodule: CdtVisionDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         return self._run_internal(datamodule=datamodule, trainer=trainer, test=test)
