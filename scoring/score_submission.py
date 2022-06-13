@@ -13,7 +13,7 @@ SCORE_COL = "score"
 
 class MeanAveragePrecision:
     @classmethod
-    def score(cls, predicted: pd.DataFrame, actual: pd.DataFrame, prediction_limit: int):
+    def score(cls, predicted: pd.DataFrame, *, actual: pd.DataFrame, prediction_limit: int):
         """Calculates mean average precision for a ranking task.
 
         :param predicted: The predicted values as a dataframe with specified column names
@@ -33,13 +33,15 @@ class MeanAveragePrecision:
             )
 
         unadjusted_aps, predicted_n_pos, actual_n_pos = cls._score_per_query(
-            predicted, actual, prediction_limit
+            predicted, actual=actual, prediction_limit=prediction_limit
         )
         adjusted_aps = unadjusted_aps.multiply(predicted_n_pos).divide(actual_n_pos)
         return adjusted_aps.mean()
 
     @classmethod
-    def _score_per_query(cls, predicted: pd.DataFrame, actual: pd.DataFrame, prediction_limit: int):
+    def _score_per_query(
+        cls, predicted: pd.DataFrame, *, actual: pd.DataFrame, prediction_limit: int
+    ):
         """Calculates per-query mean average precision for a ranking task."""
         merged = predicted.merge(
             right=actual.assign(actual=1.0),

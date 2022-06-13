@@ -80,7 +80,7 @@ class Model(nn.Module):
 
         return Prediction(
             query_inds=mask_inds[0],
-            retrieved_inds=retrieved_inds,
+            database_inds=retrieved_inds,
             n_retrieved_per_query=n_retrieved_per_query,
             scores=scores,
         )

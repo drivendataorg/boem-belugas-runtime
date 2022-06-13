@@ -63,12 +63,12 @@ EvalEpochOutput: TypeAlias = List[EvalStepOutput]
 @dataclass(unsafe_hash=True)
 class Prediction:
     query_inds: Tensor
-    retrieved_inds: Tensor
+    database_inds: Tensor
     n_retrieved_per_query: Tensor
     scores: Tensor
 
     def __post_init__(self) -> None:
-        if len(self.query_inds) != len(self.retrieved_inds) != len(self.scores):
+        if len(self.query_inds) != len(self.database_inds) != len(self.scores):
             raise AttributeError(
                 "'query_inds', 'retrieved_inds', and 'scores' must be equal in length."
             )
