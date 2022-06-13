@@ -1,0 +1,13 @@
+---
+# usage: hydra/launcher=slurm_goedel
+defaults:
+  - submitit_slurm
+  - _self_
+
+partition: hydra
+cpus_per_task: 20  # on goedel, we have 20 CPUs per GPU
+timeout_min: 99999
+
+additional_parameters:
+  gres: "gpu:1"  # 1 GPU
+  # gres: "mps:4"  # 4 GB of GPU memor

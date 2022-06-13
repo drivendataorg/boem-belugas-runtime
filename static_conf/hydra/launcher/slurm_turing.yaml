@@ -1,0 +1,13 @@
+---
+# usage: hydra/launcher=slurm_turing
+defaults:
+  - submitit_slurm
+  - _self_
+
+partition: turing
+cpus_per_task: 40  # on turing, we have 60 CPUs per GPU
+timeout_min: 99999  # 99999 minutes = a few months
+
+additional_parameters:
+  gres: "gpu:1"  # 1 GPU
+  # gres: "mps:4"  # 4 GB of GPU memory
