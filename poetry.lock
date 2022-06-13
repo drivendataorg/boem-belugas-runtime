@@ -1466,7 +1466,7 @@ all = ["imagecodecs (>=2021.11.20)", "matplotlib (>=3.3)", "lxml"]
 
 [[package]]
 name = "timm"
-version = "0.5.4"
+version = "0.6.2.dev0"
 description = "(Unofficial) PyTorch Image Models"
 category = "main"
 optional = false
@@ -1846,7 +1846,7 @@ deepspeed = ["deepspeed", "triton"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "1c12042b6dc62383adfaa160cc3bc8d27f526a79b9404cf05927c22503414de5"
+content-hash = "c7653f29b0439e914775ed0e7d6976e0962ede8010ce0e6802787a0a7fbebc0f"
 
 [metadata.files]
 absl-py = [
@@ -2862,7 +2862,6 @@ pywavelets = [
     {file = "PyWavelets-1.3.0-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:f6e7d969a6ef64ae8be1766b0b0e32debb13424543d331911b8d7e967d60dd42"},
     {file = "PyWavelets-1.3.0-cp39-cp39-win32.whl", hash = "sha256:de67deb275474094e160900ab7e07f2a721b9cd351cf3826c4a3ab89bb71d4b3"},
     {file = "PyWavelets-1.3.0-cp39-cp39-win_amd64.whl", hash = "sha256:a354979e2ee8cd71a8952ded381f3d9f981692b73c6842bcc6c9f64047e0a5be"},
-    {file = "PyWavelets-1.3.0.tar.gz", hash = "sha256:cbaa9d62052d9daf8da765fc8e7c30c38ea2b8e9e1c18841913dfb4aec671ee5"},
 ]
 pywin32 = [
     {file = "pywin32-304-cp310-cp310-win32.whl", hash = "sha256:3c7bacf5e24298c86314f03fa20e16558a4e4138fc34615d7de4070c23e65af3"},
@@ -3219,8 +3218,8 @@ tifffile = [
     {file = "tifffile-2022.5.4.tar.gz", hash = "sha256:b03147a15862b7c1d90d47435197f149bef7a52c25ad67cf1f9b465faa71b8d2"},
 ]
 timm = [
-    {file = "timm-0.5.4-py3-none-any.whl", hash = "sha256:0592c8fd2d46d0769c0b7e954b3dacea93769eee40dabb4bd7f2acb85243b588"},
-    {file = "timm-0.5.4.tar.gz", hash = "sha256:5d7b92e66a76c432009aba90d515ea7a882aae573415a7c5269e3617df901c1f"},
+    {file = "timm-0.6.2.dev0-py3-none-any.whl", hash = "sha256:438f5891752c9ecb96b9c6d5f6963323c052f6d4b4ed8c9da4475bca2c340010"},
+    {file = "timm-0.6.2.dev0.tar.gz", hash = "sha256:0f739ca6f8816eefeda0e94372fac13c269e2125afce0f4ffbf45ce231f81f3d"},
 ]
 tokenizers = [
     {file = "tokenizers-0.12.1-cp310-cp310-macosx_10_11_x86_64.whl", hash = "sha256:d737df0f8f26e093a82bfb106b6cfb510a0e9302d35834568e5b20b73ddc5a9c"},

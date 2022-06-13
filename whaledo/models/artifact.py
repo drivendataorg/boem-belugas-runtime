@@ -67,7 +67,7 @@ def save_model_artifact(
 def load_model_from_artifact(
     name: str,
     *,
-    run: Optional[Union[Run, RunDisabled]],
+    run: Optional[Union[Run, RunDisabled]] = None,
     project: Optional[str] = None,
     filename: str = DEFAULT_FILENAME,
     target_dim: Optional[int] = None,

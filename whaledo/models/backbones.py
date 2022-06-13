@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Optional, OrderedDict, cast
+from typing import Optional, OrderedDict, Union, cast
 
 from classy_vision.models import RegNet as ClassyRegNet  # type: ignore
 from classy_vision.models.anynet import (  # type: ignore
@@ -28,6 +28,7 @@ __all__ = [
     "RegNet",
     "ResNet",
     "Swin",
+    "SwinV2",
     "ViT",
 ]
 
@@ -230,6 +231,37 @@ class Swin(BackboneFactory):
     @implements(BackboneFactory)
     def __call__(self) -> ModelFactoryOut[tm.SwinTransformer]:
         model: tm.SwinTransformer = timm.create_model(
+            self.version.value, pretrained=self.pretrained, checkpoint_path=self.checkpoint_path
+        )
+        model.head = nn.Identity()
+        return model, model.num_features
+
+
+class SwinV2Version(Enum):
+    BASE_W8_256 = "swinv2_base_window8_256"
+    BASE_W12_196 = "swinv2_base_window12_192_22k"
+    BASE_W12TO24_196TO384 = "swinv2_base_window12_192_22k"
+    CR_BASE_224 = "cr_base_224"
+    CR_BASE_384 = "cr_base_384"
+    LARGE_W12TO24_192TO384 = "swinv2_large_window12to24_192to384_22kft1k"
+    LARGE_W12_192 = "swinv2_large_window12_192_22k"
+    CR_LARGE_224 = "swinv2_cr_large_224"
+    CR_LARGE_384 = "swinv2_cr_large_384"
+    CR_HUGE_224 = "swinv2_cr_huge_224"
+    CR_HUGE_384 = "swinv2_cr_huge_384"
+    CR_GIANT_224 = "swinv2_cr_giant_224"
+    CR_GIANT_384 = "swinv2_cr_giant_384"
+
+
+@dataclass
+class SwinV2(BackboneFactory):
+    pretrained: bool = True
+    version: SwinV2Version = SwinV2Version.BASE_W8_256
+    checkpoint_path: str = ""
+
+    @implements(BackboneFactory)
+    def __call__(self) -> ModelFactoryOut[Union[tm.SwinTransformerV2, tm.SwinTransformerV2Cr]]:
+        model: Union[tm.SwinTransformerV2, tm.SwinTransformerV2Cr] = timm.create_model(
             self.version.value, pretrained=self.pretrained, checkpoint_path=self.checkpoint_path
         )
         model.head = nn.Identity()

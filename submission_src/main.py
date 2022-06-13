@@ -1,51 +1,137 @@
 from pathlib import Path
+from typing import Any, Callable, List, NamedTuple, Optional, Tuple, cast
 
-import pandas as pd
+from PIL import Image
+from conduit.data.structures import MeanStd
+from loguru import logger
+import pandas as pd  # type: ignore
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms as T  # type: ignore
+from tqdm import tqdm  # type: ignore
+from typing_extensions import Final, TypeAlias
 
-ROOT_DIRECTORY = Path("/code_execution")
-DATA_DIRECTORY = ROOT_DIRECTORY / "data"
-OUTPUT_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
+from whaledo.models.artifact import load_model_from_artifact
+from whaledo.models.base import Model
+from whaledo.transforms import ResizeAndPadToSize
+
+ROOT_DIRECTORY: Final[Path] = Path("/code_execution")
+PREDICTION_FILE: Final[Path] = ROOT_DIRECTORY / "submission" / "submission.csv"
+DATA_DIRECTORY: Final[Path] = ROOT_DIRECTORY / "data"
 
 
-def predict(query_image_id, database_image_ids):
-    raise NotImplementedError(
-        "This script is just a template. You should adapt it with your own code."
+class MeanStd(NamedTuple):
+    mean: Tuple[float, ...]
+    std: Tuple[float, ...]
+
+
+IMAGENET_STATS: Final[MeanStd] = MeanStd(
+    mean=(0.485, 0.456, 0.406),
+    std=(0.229, 0.224, 0.225),
+)
+
+ImageTform: TypeAlias = Callable[[Image.Image], Any]
+
+
+class TestTimeWhaledoDataset(Dataset):
+    """Reads in an image, transforms pixel values, and serves
+    a dictionary containing the image id and image tensors.
+    """
+
+    def __init__(self, metadata: pd.DataFrame, transform: Optional[ImageTform] = None) -> None:
+        self.metadata = metadata
+        self.transform = self._default_train_transforms if transform is None else transform
+
+    @property
+    def _default_train_transforms(self) -> ImageTform:
+        transform_ls: List[ImageTform] = [
+            ResizeAndPadToSize(224),
+            T.ToTensor(),
+            T.Normalize(*IMAGENET_STATS),
+        ]
+        return T.Compose(transform_ls)
+
+    def __getitem__(self, idx: int):
+        image = Image.open(DATA_DIRECTORY / self.metadata.path.iloc[idx]).convert("RGB")
+        image = self.transform(image)
+        return {"image_id": self.metadata.index[idx], "image": image}
+
+    def __len__(self) -> int:
+        return len(self.metadata)
+
+
+def main() -> None:
+    logger.info("Starting main script")
+    # load test set data and pretrained model
+    query_scenarios = cast(
+        pd.DataFrame, pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv", index_col="scenario_id")
     )
-    # result_images = ...
-    # scores = ...
-    # return result_images, scores
+    metadata = cast(
+        pd.DataFrame, pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
+    )
+    logger.info("Loading pre-trained model")
+    backbone, feature_dim = load_model_from_artifact("model.pt")
+    model = Model(backbone=backbone, feature_dim=feature_dim)
 
+    # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
+    # benchmark example can run quickly when doing local testing. this subsetting step is not necessary for an actual
+    # code submission since all the images in the test environment metadata also belong to a query or database.
+    scenario_imgs = []
+    for row in query_scenarios.itertuples():
+        scenario_imgs.extend(pd.read_csv(DATA_DIRECTORY / row.queries_path).query_image_id.values)
+        scenario_imgs.extend(
+            pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values
+        )
+    scenario_imgs = sorted(set(scenario_imgs))
+    metadata = metadata.loc[scenario_imgs]
 
-def main():
-    scenarios_df = pd.read_csv(DATA_DIRECTORY / "query_scenarios.csv")
+    # instantiate dataset/loader and generate embeddings for all images
+    dataset = TestTimeWhaledoDataset(metadata)
+    dataloader = DataLoader(dataset, batch_size=16)
+    embeddings = []
+    model.eval()
 
-    predictions = []
+    logger.info("Precomputing embeddings")
+    for batch in tqdm(dataloader, total=len(dataloader)):
+        batch_embeddings = model(batch["image"])
+        batch_embeddings_df = pd.DataFrame(
+            batch_embeddings.detach().numpy(), index=batch["image_id"]
+        )
+        embeddings.append(batch_embeddings_df)
 
-    for scenario_row in scenarios_df.itertuples():
+    embeddings = pd.concat(embeddings)
+    logger.info(f"Precomputed embeddings for {len(embeddings)} images")
+    logger.info("Generating image rankings")
+    # process all scenarios
+    results = []
+    for row in query_scenarios.itertuples():
+        # load query df and database images; subset embeddings to this scenario's database
+        qry_df = cast(pd.DataFrame, pd.read_csv(DATA_DIRECTORY / row.queries_path))
+        db_img_ids = cast(
+            pd.DataFrame, pd.read_csv(DATA_DIRECTORY / row.database_path).database_image_id.values
+        )
+        db_embeddings = embeddings.loc[db_img_ids]
 
-        queries_df = pd.read_csv(DATA_DIRECTORY / scenario_row.queries_path)
-        database_df = pd.read_csv(DATA_DIRECTORY / scenario_row.database_path)
+        # predict matches for each query in this scenario
+        for qry in qry_df.itertuples():
+            # get embeddings; drop query from database, if it exists
+            qry_embedding = embeddings.loc[[qry.query_image_id]]
+            _db_embeddings = db_embeddings.drop(qry.query_image_id, errors="ignore")
 
-        for query_row in queries_df.itertuples():
-            query_id = query_row.query_id
-            query_image_id = query_row.query_image_id
-            database_image_ids = database_df["database_image_id"].values
-
-            ### Prediction happens here ######
-            result_images, scores = predict(query_image_id, database_image_ids)
-            ##################################
-
-            predictions.extend(
+            prediction = model.predict(queries=qry_embedding, db=_db_embeddings, k=20)
+            scores = pd.Series(prediction.scores)
+            # append result
+            qry_result = pd.DataFrame(
                 {
-                    "query_id": query_id,
-                    "database_image_id": pred_image_id,
-                    "score": score,
+                    "query_id": qry.query_id,
+                    "database_image_id": scores.index,
+                    "score": scores.values,
                 }
-                for pred_image_id, score in zip(result_images, scores)
             )
+            results.append(qry_result)
 
-    predictions_df = pd.DataFrame(predictions)
-    predictions_df.to_csv(OUTPUT_FILE, index=False)
+    logger.info(f"Writing predictions file to {PREDICTION_FILE}")
+    submission = pd.concat(results)
+    submission.to_csv(PREDICTION_FILE, index=False)
 
 
 if __name__ == "__main__":

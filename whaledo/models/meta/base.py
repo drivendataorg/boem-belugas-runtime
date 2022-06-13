@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional, ParamSpec, Union
+from typing import Any, Optional, Union
 
 from ranzen.decorators import implements
 from torch import Tensor
 import torch.nn as nn
-from typing_extensions import Self
+from typing_extensions import ParamSpec, Self
 
 from whaledo.models.base import Model
 from whaledo.types import Prediction

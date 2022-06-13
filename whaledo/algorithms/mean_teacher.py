@@ -6,7 +6,7 @@ from torch import Tensor
 import torch.nn as nn
 from torch.optim.swa_utils import AveragedModel
 
-from whaledo.schedulers import LinearWarmup
+from whaledo.schedulers import CosineWarmup
 
 __all__ = ["MeanTeacher"]
 
@@ -32,7 +32,7 @@ class MeanTeacher(nn.Module, Generic[M]):
         auto_update: bool = True,
     ) -> None:
         super().__init__()
-        self.decay = LinearWarmup(
+        self.decay = CosineWarmup(
             start_val=decay_start, end_val=decay_end, warmup_steps=warmup_steps
         )
         self.update_frequency = update_frequency
