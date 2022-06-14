@@ -23,7 +23,8 @@ dm:
       size: ${ dm.image_size }
     - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
       global_crop_size: ${ dm.image_size }
-      local_crops_number: 0
+      local_crops_number: 2
+      local_crop_size: ${ dm.image_size }
 
 trainer:
   max_steps: 50000

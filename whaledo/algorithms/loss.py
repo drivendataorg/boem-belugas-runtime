@@ -1,8 +1,9 @@
-import math
-from typing import Callable, Optional, Type, TypeVar, Union, cast
+from typing import Callable, Iterable, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
+from torch.autograd.function import Function, NestedIOFunction
+import torch.distributed
 import torch.nn as nn
 from typing_extensions import Self
 
@@ -14,6 +15,37 @@ __all__ = [
 ]
 
 
+class _Synchronize(Function):
+    @staticmethod
+    def forward(ctx: NestedIOFunction, tensor: Tensor) -> Tensor:
+        ctx.batch_size = tensor.shape[0]
+
+        gathered_tensor = [
+            torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
+        ]
+
+        torch.distributed.all_gather(gathered_tensor, tensor)
+        gathered_tensor = torch.cat(gathered_tensor, dim=0)
+
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx: NestedIOFunction, grad_output: Tensor) -> Tensor:
+        grad_input = grad_output.clone()
+        torch.distributed.all_reduce(grad_input, op=torch.distributed.ReduceOp.SUM, async_op=False)
+        idx_from = torch.distributed.get_rank() * ctx.batch_size
+        idx_to = (torch.distributed.get_rank() + 1) * ctx.batch_size
+        return grad_input[idx_from:idx_to]
+
+
+def maybe_synchronize(*inputs: Tensor) -> Iterable[Tensor]:
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        for input in inputs:
+            yield _Synchronize.apply(input)
+    for input in inputs:
+        yield input
+
+
 def moco_loss(
     anchors: Tensor,
     *,
@@ -22,8 +54,11 @@ def moco_loss(
     temperature: Union[float, Tensor] = 1.0,
     dcl: bool = True,
 ) -> Tensor:
-    # positive logits: (N,)
-    l_pos = (anchors * positives.unsqueeze(1)).sum(-1).view(-1, 1) / temperature
+    anchors, positives, negatives = maybe_synchronize(anchors, positives, negatives)
+    # positive logits: (N * L)
+    n, d = anchors.size(0), anchors.size(-1)
+    positives = positives.view(n, 1, d)
+    l_pos = (anchors * positives).sum(-1).view(-1, 1) / temperature
     # negative logits: (N, K)
     l_neg = (anchors @ negatives.T).view(l_pos.size(0), -1) / temperature
     # Compute the partition function either according to the original InfoNCE formulation
@@ -65,6 +100,7 @@ def supcon_loss(
         raise ValueError("'anchors' and 'anchor_labels' must match in size at dimension 0.")
     # Create new variables for the candidate- variables to placate
     # the static-type checker.
+    anchors, anchor_labels = maybe_synchronize(anchors, anchor_labels)
     if candidates is None:
         candidates_t = anchors
         candidate_labels_t = anchor_labels
@@ -77,6 +113,7 @@ def supcon_loss(
             raise ValueError(
                 "'candidates' and 'candidate_labels' must match in size at dimension 0."
             )
+        candidates_t, candidate_labels_t = maybe_synchronize(candidates_t, candidate_labels_t)
 
     anchor_labels = anchor_labels.view(-1, 1)
     candidate_labels_t = candidate_labels_t.flatten()
@@ -112,6 +149,8 @@ def supcon_loss(
             z_mask = dcl_mask
         else:
             z_mask |= dcl_mask
+    if (z_mask is not None) and (anchors.ndim == 3):
+        z_mask = z_mask.unsqueeze(1)
     z = logsumexp(logits, dim=-1, mask=z_mask).flatten()
     return (z.sum() - positives.sum()) / z.numel()
 
