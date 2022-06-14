@@ -240,7 +240,7 @@ class Swin(BackboneFactory):
 class SwinV2Version(Enum):
     BASE_W8_256 = "swinv2_base_window8_256"
     BASE_W12_196 = "swinv2_base_window12_192_22k"
-    BASE_W12TO24_196TO384 = "swinv2_base_window12_192_22k"
+    BASE_W12TO24_192TO384 = "swinv2_base_window12_192_22k"
     CR_BASE_224 = "cr_base_224"
     CR_BASE_384 = "cr_base_384"
     LARGE_W12TO24_192TO384 = "swinv2_large_window12to24_192to384_22kft1k"

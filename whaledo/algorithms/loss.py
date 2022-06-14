@@ -55,11 +55,10 @@ def moco_loss(
     dcl: bool = True,
 ) -> Tensor:
     anchors, positives, negatives = maybe_synchronize(anchors, positives, negatives)
-    # positive logits: (N * L)
     n, d = anchors.size(0), anchors.size(-1)
+    anchors = anchors.view(n, -1, d)
     positives = positives.view(n, 1, d)
     l_pos = (anchors * positives).sum(-1).view(-1, 1) / temperature
-    # negative logits: (N, K)
     l_neg = (anchors @ negatives.T).view(l_pos.size(0), -1) / temperature
     # Compute the partition function either according to the original InfoNCE formulation
     # or according to the DCL formulation which excludes the positive samples.
