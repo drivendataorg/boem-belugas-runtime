@@ -11,6 +11,7 @@ from conduit.data.structures import TrainValTestSplit
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
 import torchvision.transforms as T  # type: ignore
+from ranzen.torch.data import SequentialBatchSampler
 
 from whaledo.data.dataset import SampleType, WhaledoDataset
 from whaledo.data.samplers import BaseSampler, QueryKeySampler
@@ -25,6 +26,7 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
 
     base_sampler: BaseSampler = BaseSampler.RANDOM
     image_size: int = 224
+    use_qk_sampler: bool = True
 
     @property
     def _default_train_transforms(self) -> ImageTform:
@@ -53,19 +55,28 @@ class WhaledoDataModule(CdtVisionDataModule[WhaledoDataset, SampleType]):
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
     ) -> CdtDataLoader[SampleType]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
-        base_ds = self._get_base_dataset()
-        if batch_size & 1:
-            self.logger.info(
-                "train_batch_size is not an even number: rounding down to the nearest multiple of "
-                "two to ensure the effective batch size is upperjbounded by the requested "
-                "batch size."
+        batch_sampler = None
+        if self.use_qk_sampler:
+            base_ds = self._get_base_dataset()
+            if batch_size & 1:
+                self.logger.info(
+                    "train_batch_size is not an even number: rounding down to the nearest multiple of "
+                    "two to ensure the effective batch size is upperjbounded by the requested "
+                    "batch size."
+                )
+            batch_sampler = QueryKeySampler(
+                data_source=base_ds,
+                num_queries_per_batch=batch_size // 2,
+                ids=base_ds.y,
+                base_sampler=self.base_sampler,
             )
-        batch_sampler = QueryKeySampler(
-            data_source=base_ds,
-            num_queries_per_batch=batch_size // 2,
-            ids=base_ds.y,
-            base_sampler=self.base_sampler,
-        )
+        else:
+            batch_sampler = SequentialBatchSampler(
+                data_source=self.train_data,
+                batch_size=self.train_batch_size,
+                drop_last=False,
+                training_mode="step",
+            )
         return self.make_dataloader(
             ds=self.train_data, batch_size=self.train_batch_size, batch_sampler=batch_sampler
         )

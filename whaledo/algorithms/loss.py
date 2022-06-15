@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Optional, Type, TypeVar, Union, cast
+from typing import Callable, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -39,12 +39,10 @@ class _Synchronize(Function):
         return grad_input[idx_from:idx_to]
 
 
-def maybe_synchronize(*inputs: Tensor) -> Iterable[Tensor]:
+def maybe_synchronize(input: Tensor) -> Tensor:
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        for input in inputs:
-            yield _Synchronize.apply(input)
-    for input in inputs:
-        yield input
+        return _Synchronize.apply(input)
+    return input
 
 
 def logsumexp(input: Tensor, *, dim: int, keepdim: bool = False, mask: Optional[Tensor] = None):
@@ -71,7 +69,10 @@ def moco_v2_loss(
     temperature: Union[float, Tensor] = 1.0,
     dcl: bool = True,
 ) -> Tensor:
-    anchors, positives, negatives = maybe_synchronize(anchors, positives, negatives)
+    anchors = maybe_synchronize(anchors)
+    positives = maybe_synchronize(positives)
+    negatives = maybe_synchronize(negatives)
+
     n, d = anchors.size(0), anchors.size(-1)
     anchors = anchors.view(n, -1, d)
     positives = positives.view(n, 1, d)
@@ -90,7 +91,9 @@ def simclr_loss(
     temperature: Union[float, Tensor] = 1.0,
     dcl: bool = True,
 ) -> Tensor:
-    anchors, targets = maybe_synchronize(anchors, targets)
+    anchors = maybe_synchronize(anchors)
+    targets = maybe_synchronize(targets)
+
     logits = (anchors @ targets.T) / temperature
     pos_idxs = torch.arange(logits.size(0)).view(-1, *((1,) * (logits.ndim - 1)))
     l_pos = logits.gather(-1, pos_idxs).sum()
@@ -121,7 +124,9 @@ def supcon_loss(
         raise ValueError("'anchors' and 'anchor_labels' must match in size at dimension 0.")
     # Create new variables for the candidate- variables to placate
     # the static-type checker.
-    anchors, anchor_labels = maybe_synchronize(anchors, anchor_labels)
+    anchors = maybe_synchronize(anchors)
+    anchor_labels = maybe_synchronize(anchor_labels)
+
     if candidates is None:
         candidates_t = anchors
         candidate_labels_t = anchor_labels
@@ -134,7 +139,8 @@ def supcon_loss(
             raise ValueError(
                 "'candidates' and 'candidate_labels' must match in size at dimension 0."
             )
-        candidates_t, candidate_labels_t = maybe_synchronize(candidates_t, candidate_labels_t)
+        candidates_t = maybe_synchronize(candidates_t)
+        candidate_labels_t = maybe_synchronize(candidate_labels_t)
 
     anchor_labels = anchor_labels.view(-1, 1)
     candidate_labels_t = candidate_labels_t.flatten()

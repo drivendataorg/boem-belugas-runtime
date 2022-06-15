@@ -36,19 +36,20 @@ trainer:
   accumulate_grad_batches: null
 
 alg:
-  lr: 1e-4
-  proj_dim: 128
+  base_lr: 1e-4
+  proj_dim: 256
   mlp_head: true
   loss_fn: SUPCON
-  temp0: 1.0
+  temp0: 0.1
   dcl: true
+  learn_temp: false
   mb_capacity: 8192
   ema_warmup_steps: ${ trainer.max_steps } 
   ema_decay_start: 0.96
   ema_decay_end: 1.0
   scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
   scheduler_kwargs:
-    warmup_iters: 1000
+    warmup_iters: 0.1
     total_iters: ${ trainer.max_steps }
     lr_start: 5e-7
 

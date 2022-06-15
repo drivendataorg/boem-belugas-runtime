@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 import operator
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -60,7 +60,7 @@ def exclude_from_weight_decay(
 class Algorithm(pl.LightningModule):
     model: Union[Model, MetaModel]
     base_lr: float = 1.0e-4
-    lr: float = base_lr
+    lr: float = field(default=base_lr, init=False)
     optimizer_cls: str = "torch.optim.AdamW"
     weight_decay: float = 0.0
     optimizer_kwargs: Optional[DictConfig] = None
@@ -228,8 +228,9 @@ class Algorithm(pl.LightningModule):
     def _run_internal(
         self, datamodule: CdtVisionDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
+        eff_bs = trainer.num_devices * datamodule.train_batch_size
+        self.lr = self.base_lr * eff_bs / 256  # linear scaling rule
         # Run routines to tune hyperparameters before training.
-        self.lr = self.base_lr * datamodule.train_batch_size / 256  # linear scaling rule
         trainer.tune(model=self, datamodule=datamodule)
         # Train the model
         trainer.fit(model=self, datamodule=datamodule)

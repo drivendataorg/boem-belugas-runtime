@@ -70,7 +70,7 @@ class CosineLRWithLinearWarmup(_LRScheduler):
         self,
         optimizer: Optimizer,
         *,
-        warmup_iters: int,
+        warmup_iters: Union[int, float],
         lr_start: float = 0.0,
         total_iters: int,
         lr_min: float = 0.0,
@@ -84,10 +84,16 @@ class CosineLRWithLinearWarmup(_LRScheduler):
         :param lr_min: Minimum learning rate permitted with cosine annealing.
         :param last_step: The index of the last epoch.
         """
-        self.warmup_iters = warmup_iters
         self.total_iters = total_iters
         self.lr_start = lr_start
         self.lr_min = lr_min
+        if isinstance(warmup_iters, float):
+            if not (0 <= warmup_iters <= 1):
+                raise AttributeError(
+                    "If 'warmup_iters' is a float, it must be in the range [0, 1]."
+                )
+            warmup_iters = round(warmup_iters * total_iters)
+        self.warmup_iters = warmup_iters
         self._scheduler: Union[LinearWarmupLR, CosineAnnealingLR] = LinearWarmupLR(
             optimizer=optimizer, warmup_iters=warmup_iters, lr_start=lr_start
         )
