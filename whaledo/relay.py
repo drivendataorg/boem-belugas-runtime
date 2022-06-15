@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Union
 import attr
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from fairscale.nn import auto_wrap  # type: ignore
-from hydra.utils import instantiate
+from hydra.utils import instantiate, to_absolute_path
 from omegaconf import DictConfig
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -31,8 +31,8 @@ class WhaledoRelay(Relay):
     logger: DictConfig
     checkpointer: DictConfig
     meta_model: Optional[DictConfig] = None
-
     seed: Optional[int] = 42
+    output_dir: str = "outputs"
 
     @classmethod
     @implements(Relay)
@@ -98,7 +98,9 @@ class WhaledoRelay(Relay):
             logger=logger,
             enable_checkpointing=False,
         )
-        checkpointer: ModelCheckpoint = instantiate(self.checkpointer)
+        output_dir = Path(to_absolute_path(self.output_dir))
+        output_dir.mkdir(exist_ok=True, parents=True)
+        checkpointer: ModelCheckpoint = instantiate(self.checkpointer, dirpath=output_dir)
         trainer.callbacks.append(checkpointer)
 
         if self.meta_model is not None:
