@@ -175,10 +175,11 @@ def supcon_loss(
         if z_mask is None:
             z_mask = dcl_mask
         else:
-            z_mask |= dcl_mask
+            z_mask &= dcl_mask
     if (z_mask is not None) and (anchors.ndim == 3):
         z_mask = z_mask.unsqueeze(1)
-    z = logsumexp(logits, dim=-1, mask=z_mask).flatten()
+
+    z = logsumexp(logits, dim=-1, mask=z_mask)
     return (z.sum() - positives.sum()) / z.numel()
 
 
