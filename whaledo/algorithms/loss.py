@@ -10,7 +10,8 @@ from typing_extensions import Self
 __all__ = [
     "DecoupledContrastiveLoss",
     "decoupled_constrastive_loss",
-    "moco_loss",
+    "moco_v2_loss",
+    "simclr_loss",
     "supcon_loss",
 ]
 
@@ -46,7 +47,23 @@ def maybe_synchronize(*inputs: Tensor) -> Iterable[Tensor]:
         yield input
 
 
-def moco_loss(
+def logsumexp(input: Tensor, *, dim: int, keepdim: bool = False, mask: Optional[Tensor] = None):
+    """Numerically stable logsumexp on the last dim of `inputs`.
+    reference: https://github.com/pytorch/pytorch/issues/2591
+    """
+    if mask is None:
+        return input.logsumexp(dim=dim, keepdim=keepdim)
+    eps = torch.finfo(input.dtype).eps
+    max_offset = eps * mask.to(input.dtype)
+    max_ = torch.max(input + max_offset, dim=dim, keepdim=True).values
+    input = input - max_
+    if keepdim is False:
+        max_ = max_.squeeze(dim)
+    input_exp_m = input.exp() * mask
+    return max_ + input_exp_m.sum(dim=dim, keepdim=keepdim).log()
+
+
+def moco_v2_loss(
     anchors: Tensor,
     *,
     positives: Tensor,
@@ -66,23 +83,28 @@ def moco_loss(
     return (z - l_pos).mean()
 
 
+def simclr_loss(
+    anchors: Tensor,
+    *,
+    targets: Tensor,
+    temperature: Union[float, Tensor] = 1.0,
+    dcl: bool = True,
+) -> Tensor:
+    anchors, targets = maybe_synchronize(anchors, targets)
+    logits = (anchors @ targets.T) / temperature
+    pos_idxs = torch.arange(logits.size(0)).view(-1, *((1,) * (logits.ndim - 1)))
+    l_pos = logits.gather(-1, pos_idxs).sum()
+
+    z_mask = None
+    if dcl:
+        z_mask = ~torch.eye(len(logits), dtype=torch.bool, device=logits.device)
+        if anchors.ndim == 3:
+            z_mask = z_mask.unsqueeze(1)
+    z = logsumexp(logits, dim=-1, mask=z_mask).flatten()
+    return (z.sum() - l_pos) / z.numel()
+
+
 T = TypeVar("T", Tensor, None)
-
-
-def logsumexp(input: Tensor, *, dim: int, keepdim: bool = False, mask: Optional[Tensor] = None):
-    """Numerically stable logsumexp on the last dim of `inputs`.
-    reference: https://github.com/pytorch/pytorch/issues/2591
-    """
-    if mask is None:
-        return input.logsumexp(dim=dim, keepdim=keepdim)
-    eps = torch.finfo(input.dtype).eps
-    max_offset = eps * mask.to(input.dtype)
-    max_ = torch.max(input, dim=dim, keepdim=True).values
-    input = input - max_
-    if keepdim is False:
-        max_ = max_.squeeze(dim)
-    input_exp_m = input.exp() * mask
-    return max_ + input_exp_m.sum(dim=dim, keepdim=keepdim).log()
 
 
 def supcon_loss(

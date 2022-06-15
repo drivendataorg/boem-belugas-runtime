@@ -31,7 +31,7 @@ TrainBatch: TypeAlias = BinarySample[MultiViewPair]
 @dataclass(unsafe_hash=True)
 class SimClr(Algorithm):
 
-    out_dim: int = 256
+    proj_dim: int = 256
     mlp_head: bool = True
     temp0: float = 1.0
     learn_temp: bool = False
@@ -44,9 +44,11 @@ class SimClr(Algorithm):
 
         # initialise the encoders
         embed_dim = self.model.feature_dim
-        head = nn.Linear(embed_dim, self.out_dim)
+        head = nn.Sequential(nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, self.proj_dim))
         if self.mlp_head:
-            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), head)
+            head = nn.Sequential(
+                nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, embed_dim), nn.ReLU(), head
+            )
         self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
         self.temp = self.temp0
 
@@ -95,13 +97,17 @@ class SimClr(Algorithm):
         logits_v2 = F.normalize(logits_v2, dim=1, p=2)
 
         logits = torch.cat((logits_v1, logits_v2), dim=0)
+        temp = self.temp
         loss = supcon_loss(
             anchors=logits,
             anchor_labels=batch.y.repeat(2),
-            temperature=self.temp,
+            temperature=temp,
             exclude_diagonal=True,
             dcl=True,
         )
+        if isinstance(temp, Tensor):
+            temp = temp.detach()
+        loss *= temp * 2
 
         logging_dict = {"supcon": to_item(loss)}
         logging_dict = prefix_keys(

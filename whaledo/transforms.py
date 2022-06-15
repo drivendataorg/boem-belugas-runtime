@@ -348,6 +348,57 @@ class MultiCropTransform(Generic[LT]):
             local_crops_number=local_crops_number,
         )
 
+    @classmethod
+    def with_whaledo_transform(
+        cls,
+        *,
+        global_crop_size: int = 224,
+        norm_values: Optional[MeanStd] = IMAGENET_STATS,
+    ) -> "MultiCropTransform":
+
+        flip_and_color_jitter = T.Compose(
+            [
+                T.RandomHorizontalFlip(p=0.5),
+                T.RandomApply(
+                    [T.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)], p=0.8
+                ),
+                T.RandomGrayscale(p=0.2),
+            ]
+        )
+        normalize_ls: List[PillowTform] = [T.ToTensor()]
+        if norm_values is not None:
+            normalize_ls.append(
+                T.Normalize(mean=norm_values.mean, std=norm_values.std),
+            )
+        normalize = T.Compose(normalize_ls)
+
+        # first global crop
+        global_transform_1 = T.Compose(
+            [
+                ResizeAndPadToSize(size=global_crop_size),
+                flip_and_color_jitter,
+                RandomGaussianBlur(1.0),
+                normalize,
+            ]
+        )
+        # second global crop
+        global_transform_2 = T.Compose(
+            [
+                ResizeAndPadToSize(size=global_crop_size),
+                flip_and_color_jitter,
+                RandomGaussianBlur(0.1),
+                RandomSolarize(0.2),
+                normalize,
+            ]
+        )
+
+        return MultiCropTransform(
+            global_transform_1=global_transform_1,
+            global_transform_2=global_transform_2,
+            local_transform=None,
+            local_crops_number=0,
+        )
+
 
 _Resample: TypeAlias = Literal[0, 1, 2, 3, 4, 5]
 

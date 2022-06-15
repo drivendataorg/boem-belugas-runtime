@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from functools import reduce
 import operator
-from typing import Any, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.structures import BinarySample, NamedSample
@@ -18,6 +18,7 @@ from ranzen.torch.data import TrainingMode
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
+from torch.nn.parameter import Parameter
 from typing_extensions import Self
 
 from whaledo.metrics import MeanAveragePrecision
@@ -30,12 +31,38 @@ __all__ = ["Algorithm"]
 T = TypeVar("T", bound=Union[Tensor, NamedSample[Tensor]])
 
 
+def exclude_from_weight_decay(
+    named_params: Iterable[Tuple[str, Parameter]],
+    weight_decay: float = 0.0,
+    exclusion_patterns: Tuple[str, ...] = ("bias",),
+) -> List[Dict[str, Union[List[Parameter], float]]]:
+    params: List[Parameter] = []
+    excluded_params: List[Parameter] = []
+
+    for name, param in named_params:
+        if not param.requires_grad:
+            continue
+        elif any(layer_name in name for layer_name in exclusion_patterns):
+            excluded_params.append(param)
+        else:
+            params.append(param)
+
+    return [
+        {"params": params, "weight_decay": weight_decay},
+        {
+            "params": excluded_params,
+            "weight_decay": 0.0,
+        },
+    ]
+
+
 @dataclass(unsafe_hash=True)
 class Algorithm(pl.LightningModule):
     model: Union[Model, MetaModel]
     base_lr: float = 1.0e-4
     lr: float = base_lr
     optimizer_cls: str = "torch.optim.AdamW"
+    weight_decay: float = 0.0
     optimizer_kwargs: Optional[DictConfig] = None
     use_sam: bool = False
     sam_rho: float = 0.05
@@ -170,11 +197,16 @@ class Algorithm(pl.LightningModule):
         ],
         Union[List[optim.Optimizer], optim.Optimizer],
     ]:
-        optimizer_config = DictConfig({"_target_": self.optimizer_cls})
+        optimizer_config = DictConfig(
+            {"_target_": self.optimizer_cls, "weight_decay": self.weight_decay, "lr": self.lr}
+        )
         if self.optimizer_kwargs is not None:
             optimizer_config.update(self.optimizer_kwargs)
 
-        optimizer = instantiate(optimizer_config, params=self.parameters(), lr=self.lr)
+        params = exclude_from_weight_decay(
+            self.named_parameters(), weight_decay=optimizer_config["weight_decay"]
+        )
+        optimizer = instantiate(optimizer_config, _partial_=True)(params=params)
 
         if self.scheduler_cls is not None:
             scheduler_config = DictConfig({"_target_": self.scheduler_cls})

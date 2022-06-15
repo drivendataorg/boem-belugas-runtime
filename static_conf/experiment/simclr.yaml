@@ -13,6 +13,7 @@ backbone:
   pretrained: true
 
 dm: 
+  test_prop: 0.1
   image_size: 224
   training_mode: step
   train_batch_size: 32
@@ -36,7 +37,7 @@ alg:
   lr: 1e-4
   temp0: 0.1
   learn_temp: true
-  out_dim: 256
+  proj_dim: 128
   mlp_head: true
   scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
   scheduler_kwargs:
