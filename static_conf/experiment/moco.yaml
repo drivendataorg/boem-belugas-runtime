@@ -29,7 +29,7 @@ dm:
       global_crop_size: ${ dm.image_size }
 
 trainer:
-  max_steps: 10000
+  max_steps: 25000
   multiple_trainloader_mode: 'min_size'
   val_check_interval: 500
   precision: 16
