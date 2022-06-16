@@ -108,7 +108,7 @@ class SimClr(Algorithm):
         )
         if isinstance(temp, Tensor):
             temp = temp.detach()
-        loss *= temp
+        loss *= 2 * temp
 
         logging_dict = {"supcon": to_item(loss)}
         logging_dict = prefix_keys(
