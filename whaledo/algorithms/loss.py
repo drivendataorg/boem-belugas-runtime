@@ -96,15 +96,15 @@ def simclr_loss(
 
     logits = (anchors @ targets.T) / temperature
     pos_idxs = torch.arange(logits.size(0)).view(-1, *((1,) * (logits.ndim - 1)))
-    l_pos = logits.gather(-1, pos_idxs).sum()
+    l_pos = logits.gather(-1, pos_idxs)
 
     z_mask = None
     if dcl:
         z_mask = ~torch.eye(len(logits), dtype=torch.bool, device=logits.device)
         if anchors.ndim == 3:
             z_mask = z_mask.unsqueeze(1)
-    z = logsumexp(logits, dim=-1, mask=z_mask).flatten()
-    return (z.sum() - l_pos) / z.numel()
+    z = logsumexp(logits, dim=-1, mask=z_mask)
+    return (z.sum() - l_pos.sum()) / z.numel()
 
 
 T = TypeVar("T", Tensor, None)
