@@ -175,7 +175,10 @@ class ConvNeXt(BackboneFactory):
         )
         num_features = classifier.num_features
         backbone = nn.Sequential(
-            classifier.stem, classifier.stages, nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten())
+            classifier.stem,
+            classifier.stages,
+            classifier.norm_pre,
+            nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten()),
         )
         return backbone, num_features
 
