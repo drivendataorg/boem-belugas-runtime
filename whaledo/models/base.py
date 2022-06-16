@@ -65,7 +65,7 @@ class Model(nn.Module):
         sim_mat = queries @ db.T
         db_size = sim_mat.size(1)
 
-        probs = sim_mat.softmax(dim=1)
+        probs = sim_mat.float().softmax(dim=1)
         if mask_diag:
             # Mask the diagonal to prevent self matches.
             probs.fill_diagonal_(0)
