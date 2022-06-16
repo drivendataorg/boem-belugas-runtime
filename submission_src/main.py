@@ -17,6 +17,7 @@ from whaledo.transforms import ResizeAndPadToSize
 ROOT_DIRECTORY: Final[Path] = Path("/code_execution")
 PREDICTION_FILE: Final[Path] = ROOT_DIRECTORY / "submission" / "submission.csv"
 DATA_DIRECTORY: Final[Path] = ROOT_DIRECTORY / "data"
+MODEL_PATH: Final[str] = "model.pt"
 
 
 class MeanStd(NamedTuple):
@@ -68,8 +69,8 @@ def main() -> None:
     metadata = cast(
         pd.DataFrame, pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
     )
-    logger.info("Loading pre-trained model")
-    backbone, feature_dim = load_model_from_artifact("model.pt")
+    logger.info("Loading pre-trained model...")
+    backbone, feature_dim = load_model_from_artifact(MODEL_PATH)
     model = Model(backbone=backbone, feature_dim=feature_dim)
 
     # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
