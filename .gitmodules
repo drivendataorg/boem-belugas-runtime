@@ -1,0 +1,3 @@
+[submodule "submission_src/pytorch-image-models"]
+	path = submission_src/pytorch-image-models
+	url = https://github.com/rwightman/pytorch-image-models
