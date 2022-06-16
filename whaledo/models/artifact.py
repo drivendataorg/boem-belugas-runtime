@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Final, Optional, Tuple, Union
 
+from conduit.data.datasets.utils import ImageTform
 from conduit.logging import init_logger
 from hydra.utils import instantiate
 from ranzen.decorators import implements
@@ -32,6 +33,7 @@ def save_model_artifact(
     *,
     run: Union[Run, RunDisabled],
     config: Dict[str, Any],
+    transform: Optional[ImageTform] = None,
     filename: str = DEFAULT_FILENAME,
 ) -> None:
     with TemporaryDirectory() as tmpdir:
@@ -42,6 +44,7 @@ def save_model_artifact(
                 "backbone": model.backbone.state_dict(),
             },
             "config": config,
+            "transform": transform,
         }
         torch.save(save_dict, f=model_save_path)
         LOGGER.info(f"Model config and state saved to '{model_save_path.resolve()}'")
@@ -72,7 +75,7 @@ def load_model_from_artifact(
     filename: str = DEFAULT_FILENAME,
     target_dim: Optional[int] = None,
     root: Optional[Union[Path, str]] = None,
-) -> Tuple[nn.Module, int]:
+) -> Tuple[nn.Module, int, Optional[ImageTform]]:
     if root is None:
         root = Path("artifacts") / "models"
     root = Path(root)
@@ -97,7 +100,7 @@ def load_model_from_artifact(
     backbone, feature_dim = bb_fn()
     backbone.load_state_dict(state_dict["state"]["backbone"])
     LOGGER.info(f"Model successfully loaded from artifact '{full_name}'.")
-    return backbone, feature_dim
+    return backbone, feature_dim, state_dict["transform"]
 
 
 @dataclass
@@ -109,7 +112,7 @@ class ArtifactLoader(BackboneFactory):
 
     @implements(BackboneFactory)
     def __call__(self) -> ModelFactoryOut[nn.Module]:
-        return load_model_from_artifact(
+        backbone, feature_dim, _ = load_model_from_artifact(
             name=self.name,
             run=wandb.run,
             project=self.project,
@@ -117,3 +120,4 @@ class ArtifactLoader(BackboneFactory):
             root=self.root,
             target_dim=None,
         )
+        return backbone, feature_dim

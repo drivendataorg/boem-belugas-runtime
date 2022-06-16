@@ -113,5 +113,6 @@ class WhaledoRelay(Relay):
                 model=model,
                 run=logger.experiment,
                 config=raw_config,
+                transform=dm.test_transforms,
                 filename="final_model.pt",
             )

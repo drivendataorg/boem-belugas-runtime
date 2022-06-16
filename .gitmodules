@@ -1,3 +1,6 @@
 [submodule "submission_src/pytorch-image-models"]
 	path = submission_src/pytorch-image-models
 	url = https://github.com/rwightman/pytorch-image-models
+[submodule "submission_src/conduit"]
+	path = submission_src/conduit
+	url = https://github.com/wearepal/conduit
