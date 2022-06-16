@@ -169,12 +169,15 @@ class ConvNeXt(BackboneFactory):
     checkpoint_path: str = ""
 
     @implements(BackboneFactory)
-    def __call__(self) -> ModelFactoryOut[tm.ConvNeXt]:
-        model: tm.ConvNeXt = timm.create_model(
+    def __call__(self) -> ModelFactoryOut[nn.Sequential]:
+        classifier: tm.ConvNeXt = timm.create_model(
             self.version.value, pretrained=self.pretrained, checkpoint_path=self.checkpoint_path
         )
-        model.head = nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten())
-        return model, model.num_features
+        num_features = classifier.num_features
+        backbone = nn.Sequential(
+            classifier.stem, classifier.stages, nn.Sequential(nn.AdaptiveAvgPool2d(1), nn.Flatten())
+        )
+        return backbone, num_features
 
 
 class ViTVersion(Enum):
