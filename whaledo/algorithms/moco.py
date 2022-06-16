@@ -51,7 +51,6 @@ class Moco(Algorithm):
     learn_temp: bool = False
     loss_fn: LossFn = LossFn.SUPCON
     dcl: bool = True
-    symmetrize: bool = True
 
     _temp: Union[float, Parameter] = field(init=False)
     logit_mb: Optional[MemoryBank] = field(init=False)
@@ -191,7 +190,7 @@ class Moco(Algorithm):
                 )
         if isinstance(temp, Tensor):
             temp = temp.detach()
-        loss *= temp * 2
+        loss *= temp
 
         if self.logit_mb is not None:
             self.logit_mb.push(teacher_logits)

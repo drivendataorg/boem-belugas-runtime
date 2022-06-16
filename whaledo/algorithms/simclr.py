@@ -35,6 +35,7 @@ class SimClr(Algorithm):
     mlp_head: bool = True
     temp0: float = 1.0
     learn_temp: bool = False
+    dcl: bool = True
 
     _temp: Union[float, Parameter] = field(init=False)
 
@@ -103,11 +104,11 @@ class SimClr(Algorithm):
             anchor_labels=batch.y.repeat(2),
             temperature=temp,
             exclude_diagonal=True,
-            dcl=True,
+            dcl=self.dcl,
         )
         if isinstance(temp, Tensor):
             temp = temp.detach()
-        loss *= temp * 2
+        loss *= temp
 
         logging_dict = {"supcon": to_item(loss)}
         logging_dict = prefix_keys(
