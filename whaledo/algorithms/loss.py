@@ -69,9 +69,10 @@ def moco_v2_loss(
     temperature: Union[float, Tensor] = 1.0,
     dcl: bool = True,
 ) -> Tensor:
-    anchors = maybe_synchronize(anchors)
     positives = maybe_synchronize(positives)
     negatives = maybe_synchronize(negatives)
+    if (positives.requires_grad) or (negatives.requires_grad):
+        anchors = maybe_synchronize(anchors)
 
     n, d = anchors.size(0), anchors.size(-1)
     anchors = anchors.view(n, -1, d)
@@ -124,8 +125,6 @@ def supcon_loss(
         raise ValueError("'anchors' and 'anchor_labels' must match in size at dimension 0.")
     # Create new variables for the candidate- variables to placate
     # the static-type checker.
-    anchors = maybe_synchronize(anchors)
-    anchor_labels = maybe_synchronize(anchor_labels)
 
     if candidates is None:
         candidates_t = anchors
@@ -141,6 +140,12 @@ def supcon_loss(
             )
         candidates_t = maybe_synchronize(candidates_t)
         candidate_labels_t = maybe_synchronize(candidate_labels_t)
+        # If the gradient is to be computed bi-directionally then both the queries and the keys
+        # need to be collated across all devices (otherwise just doing so for the keys is
+        # sufficient).
+        if candidates_t.requires_grad:
+            anchors = maybe_synchronize(anchors)
+            anchor_labels = maybe_synchronize(anchor_labels)
 
     anchor_labels = anchor_labels.view(-1, 1)
     candidate_labels_t = candidate_labels_t.flatten()

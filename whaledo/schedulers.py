@@ -304,4 +304,7 @@ class CosineWarmup(WarmupScheduler[T]):
     def _update(self, value: T) -> T:
         if self.warmup_steps == 0:
             return value
-        return self._coeff * (1 - math.cos(math.pi * (self._curr_step + 1) / self.warmup_steps))
+        return (
+            self._coeff * (1 - math.cos(math.pi * (self._curr_step + 1) / self.warmup_steps))
+            + self.start_val
+        )

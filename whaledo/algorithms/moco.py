@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-import math
-from typing import ClassVar, Optional, TypeVar, Union
+from typing import ClassVar, Optional, TypeVar
 
 from conduit.data.structures import BinarySample
 from conduit.models.utils import prefix_keys
@@ -11,12 +10,12 @@ from ranzen import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
-from torch.nn.parameter import Parameter
 from typing_extensions import TypeAlias
 
 from whaledo.algorithms.base import Algorithm
 from whaledo.algorithms.mean_teacher import MeanTeacher
 from whaledo.algorithms.memory_bank import MemoryBank
+from whaledo.schedulers import CosineWarmup
 from whaledo.transforms import MultiCropOutput, MultiViewPair
 from whaledo.utils import to_item
 
@@ -43,28 +42,36 @@ class Moco(Algorithm):
     mlp_head: bool = True
 
     mb_capacity: int = 16_384
-    ema_decay_start: float = 0.9
-    ema_decay_end: float = 0.999
+    ema_decay_start: float = 0.99
+    ema_decay_end: float = 0.99
     ema_warmup_steps: int = 0
 
-    temp0: float = 1.0
-    learn_temp: bool = False
+    temp_start: float = 1.0
+    temp_end: float = 1.0
+    temp_warmup_steps: int = 0
+    temp: CosineWarmup = field(init=False)
+
     loss_fn: LossFn = LossFn.SUPCON
     dcl: bool = True
 
-    _temp: Union[float, Parameter] = field(init=False)
     logit_mb: Optional[MemoryBank] = field(init=False)
     label_mb: Optional[MemoryBank] = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.temp0 <= 0:
-            raise AttributeError("'temp0' must be positive.")
+        if self.temp_start <= 0:
+            raise AttributeError("'temp_start' must be positive.")
+        if self.temp_end <= 0:
+            raise AttributeError("'temp_end' must be positive.")
+        if self.temp_warmup_steps < 0:
+            raise AttributeError("'temp_warmup_steps' must be non-negative.")
+
         if not (0 <= self.ema_decay_start <= 1):
             raise AttributeError("'ema_decay_start' must be in the range [0, 1].")
         if not (0 <= self.ema_decay_end <= 1):
             raise AttributeError("'ema_decay_end' must be in the range [0, 1].")
         if self.ema_warmup_steps < 0:
             raise AttributeError("'ema_warmup_steps' must be non-negative.")
+
         if self.mb_capacity < 0:
             raise AttributeError("'mb_capacity' must be non-negative.")
 
@@ -95,22 +102,9 @@ class Moco(Algorithm):
                 self.label_mb = MemoryBank.with_constant_init(
                     dim=1, capacity=self.mb_capacity, value=self.IGNORE_INDEX, dtype=torch.long
                 )
-        self.temp = self.temp0
-
-    @property
-    def temp(self) -> Union[Tensor, float]:
-        if isinstance(self._temp, Tensor):
-            return F.softplus(self._temp)
-        return self._temp
-
-    @temp.setter
-    def temp(self, value: float) -> None:
-        if value <= 0:
-            raise AttributeError("'temp' must be positive.")
-        if self.learn_temp:
-            self._temp = Parameter(torch.tensor(math.log(math.exp(value) - 1)))
-        else:
-            self._temp = value
+        self.temp = CosineWarmup(
+            start_val=self.temp_start, end_val=self.temp_end, warmup_steps=self.temp_warmup_steps
+        )
 
     @implements(Algorithm)
     def on_after_batch_transfer(
@@ -151,7 +145,7 @@ class Moco(Algorithm):
             teacher_logits = self.teacher.forward(inputs.target)
             teacher_logits = F.normalize(teacher_logits, dim=1, p=2)
 
-        temp = self.temp
+        temp = self.temp.val
         if self.loss_fn is LossFn.SUPCON:
             candidates = teacher_logits
             candidate_labels = batch.y
@@ -188,12 +182,12 @@ class Moco(Algorithm):
                     temperature=temp,
                     dcl=self.dcl,
                 )
-        if isinstance(temp, Tensor):
-            temp = temp.detach()
         loss *= 2 * temp
 
         if self.logit_mb is not None:
             self.logit_mb.push(teacher_logits)
+        # Anneal the temperature parameter by one step.
+        self.temp.step()
 
         logging_dict[self.loss_fn.value] = to_item(loss)
         logging_dict = prefix_keys(

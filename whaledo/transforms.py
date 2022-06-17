@@ -97,6 +97,37 @@ class RandomSolarize:
         return img
 
 
+_Resample: TypeAlias = Literal[0, 1, 2, 3, 4, 5]
+
+
+class ResizeAndPadToSize:
+    resample: Optional[_Resample]
+
+    def __init__(self, size: int, *, resample: Optional[_Resample] = Image.BILINEAR) -> None:
+        self.size = size
+        self.resample = resample
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        w, h = img.size
+        if h == w:
+            img = img.resize(size=(self.size, self.size))
+        if h > w:
+            new_w = round(w / h * self.size)
+            img = img.resize(size=(new_w, self.size), resample=self.resample)
+            half_residual = (self.size - new_w) / 2
+            left_padding = math.ceil(half_residual)
+            right_padding = math.floor(half_residual)
+            img = TF.pad(img, padding=[left_padding, 0, right_padding, 0])  # type: ignore
+        else:
+            new_h = round(h / w * self.size)
+            img = img.resize(size=(self.size, new_h), resample=self.resample)
+            half_residual = (self.size - new_h) / 2
+            top_padding = math.ceil(half_residual)
+            bottom_padding = math.floor(half_residual)
+            img = TF.pad(img, padding=[0, top_padding, 0, bottom_padding])  # type: ignore
+        return img
+
+
 @dataclass
 class MultiViewPair(InputContainer[Tensor]):
     v1: Tensor
@@ -398,34 +429,3 @@ class MultiCropTransform(Generic[LT]):
             local_transform=None,
             local_crops_number=0,
         )
-
-
-_Resample: TypeAlias = Literal[0, 1, 2, 3, 4, 5]
-
-
-class ResizeAndPadToSize:
-    resample: Optional[_Resample]
-
-    def __init__(self, size: int, *, resample: Optional[_Resample] = Image.BILINEAR) -> None:
-        self.size = size
-        self.resample = resample
-
-    def __call__(self, img: Image.Image) -> Image.Image:
-        w, h = img.size
-        if h == w:
-            img = img.resize(size=(self.size, self.size))
-        if h > w:
-            new_w = round(w / h * self.size)
-            img = img.resize(size=(new_w, self.size), resample=self.resample)
-            half_residual = (self.size - new_w) / 2
-            left_padding = math.ceil(half_residual)
-            right_padding = math.floor(half_residual)
-            img = TF.pad(img, padding=[left_padding, 0, right_padding, 0])  # type: ignore
-        else:
-            new_h = round(h / w * self.size)
-            img = img.resize(size=(self.size, new_h), resample=self.resample)
-            half_residual = (self.size - new_h) / 2
-            top_padding = math.ceil(half_residual)
-            bottom_padding = math.floor(half_residual)
-            img = TF.pad(img, padding=[0, top_padding, 0, bottom_padding])  # type: ignore
-        return img
