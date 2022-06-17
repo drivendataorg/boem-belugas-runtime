@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import attr
-from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from fairscale.nn import auto_wrap  # type: ignore
 from hydra.utils import instantiate, to_absolute_path
 from omegaconf import DictConfig
@@ -16,6 +15,7 @@ from ranzen.hydra import Option, Relay
 
 from whaledo.algorithms.base import Algorithm
 from whaledo.conf import WandbLoggerConf
+from whaledo.data.datamodule import WhaledoDataModule
 from whaledo.models import MetaModel, Model
 from whaledo.models.artifact import save_model_artifact
 
@@ -68,7 +68,7 @@ class WhaledoRelay(Relay):
         self.log(f"Current working directory: '{os.getcwd()}'")
         pl.seed_everything(self.seed, workers=True)
 
-        dm: CdtVisionDataModule = instantiate(self.dm)
+        dm: WhaledoDataModule = instantiate(self.dm)
         dm.prepare_data()
         dm.setup()
 
@@ -113,6 +113,6 @@ class WhaledoRelay(Relay):
                 model=model,
                 run=logger.experiment,
                 config=raw_config,
-                transform=dm.test_transforms,
+                image_size=dm.image_size,
                 filename="final_model.pt",
             )

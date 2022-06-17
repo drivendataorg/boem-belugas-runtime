@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from functools import reduce
 import operator
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -23,6 +24,7 @@ from typing_extensions import Self
 
 from whaledo.metrics import MeanAveragePrecision
 from whaledo.models import MetaModel, Model
+from whaledo.optimizers import Adafactor
 from whaledo.transforms import BatchTransform
 from whaledo.types import EvalEpochOutput, EvalOutputs, EvalStepOutput
 
@@ -56,12 +58,17 @@ def exclude_from_weight_decay(
     ]
 
 
+class Optimizer(Enum):
+    ADAM = torch.optim.AdamW
+    ADAFACTOR = Adafactor
+
+
 @dataclass(unsafe_hash=True)
 class Algorithm(pl.LightningModule):
     model: Union[Model, MetaModel]
     base_lr: float = 1.0e-4
     lr: float = field(default=base_lr, init=False)
-    optimizer_cls: str = "torch.optim.AdamW"
+    optimizer_cls: Optimizer = Optimizer.ADAM
     weight_decay: float = 0.0
     optimizer_kwargs: Optional[DictConfig] = None
     use_sam: bool = False
@@ -197,16 +204,14 @@ class Algorithm(pl.LightningModule):
         ],
         Union[List[optim.Optimizer], optim.Optimizer],
     ]:
-        optimizer_config = DictConfig(
-            {"_target_": self.optimizer_cls, "weight_decay": self.weight_decay, "lr": self.lr}
-        )
+        optimizer_config = DictConfig({"weight_decay": self.weight_decay, "lr": self.lr})
         if self.optimizer_kwargs is not None:
             optimizer_config.update(self.optimizer_kwargs)
 
         params = exclude_from_weight_decay(
             self.named_parameters(), weight_decay=optimizer_config["weight_decay"]
         )
-        optimizer = instantiate(optimizer_config, _partial_=True)(params=params)
+        optimizer = self.optimizer_cls.value(**optimizer_config, params=params)
 
         if self.scheduler_cls is not None:
             scheduler_config = DictConfig({"_target_": self.scheduler_cls})

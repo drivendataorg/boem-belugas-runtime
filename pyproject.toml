@@ -17,6 +17,9 @@ version = "0.0.1"
 description = ""
 authors = ["Finding Bailey"]
 license = "Apache License 2.0"
+packages = [
+  { include = "whaledo" },
+]
 classifiers=[
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -29,7 +32,7 @@ repository=""
 readme="README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.9.11,<3.11"
 torch = "^1.11"
 ranzen = {version = "*", extras = ["all"]}
 scikit-learn = "0.24.2"
@@ -37,14 +40,12 @@ scikit-image = "0.18.2"
 wandb = "^0.12.10"
 attrs = "^21.4.0"
 faiss-cpu = "^1.7.0"
-classy-vision = "^0.6.0"
 setuptools = "59.5.0" # for pytorch-lightning
 fairscale = "^0.4.5"
 typing-extensions = ">=4.0"
 deepspeed = { version = "^0.5.10", platform = "linux", optional = true }
 triton = { version = "1.0.0", platform = "linux",  optional = true }
 wrapt = "<1.14,>=1.11"
-einops = "0.4.1"
 albumentations = "1.0.3"
 transformers = "^4.19.2"
 torch-conduit = "^0.1.1"

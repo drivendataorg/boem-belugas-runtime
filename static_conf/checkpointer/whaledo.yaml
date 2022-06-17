@@ -1,0 +1,7 @@
+---
+defaults:
+  - /schema/checkpointer: base
+  - _self_
+monitor: "validate/mean_average_precision"
+mode: 'max'
+

@@ -15,19 +15,20 @@ backbone:
 
 dm: 
   test_prop: 0.1
-  image_size: 224
+  image_size: 256
   training_mode: step
   train_batch_size: 32
   train_transforms: 
     _target_: torchvision.transforms.Compose
     transforms: 
-    # - _target_: whaledo.transforms.ResizeAndPadToSize
-    #   size: ${ dm.image_size }
-    # - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
-    #   global_crop_size: ${ dm.image_size }
-    #   local_crops_number: 0
-    - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform
+    - _target_: whaledo.transforms.ResizeAndPadToSize
+      size: ${ dm.image_size }
+    - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
       global_crop_size: ${ dm.image_size }
+      local_crops_number: 2
+      local_crop_size: 196
+    # - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform
+    #   global_crop_size: ${ dm.image_size }
 
 trainer:
   max_steps: 10000

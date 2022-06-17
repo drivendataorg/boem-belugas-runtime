@@ -1,22 +1,12 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Optional, OrderedDict, Union, cast
+from typing import Union
 
-from classy_vision.models import RegNet as ClassyRegNet  # type: ignore
-from classy_vision.models.anynet import (  # type: ignore
-    ActivationType,
-    BlockType,
-    StemType,
-)
-from classy_vision.models.regnet import RegNetParams  # type: ignore
 from conduit.logging import init_logger
-from hydra.utils import to_absolute_path
 from ranzen.decorators import implements
 import timm  # type: ignore
 import timm.models as tm  # type: ignore
-import torch
 import torch.nn as nn
 import torchvision.models as tvm  # type: ignore
 
@@ -25,7 +15,6 @@ from whaledo.models.base import BackboneFactory, ModelFactoryOut
 __all__ = [
     "Beit",
     "ConvNeXt",
-    "RegNet",
     "ResNet",
     "Swin",
     "SwinV2",
@@ -55,100 +44,6 @@ class ResNet(BackboneFactory):
         out_dim = model.fc.in_features
         model.fc = nn.Identity()  # type: ignore
         return model, out_dim
-
-
-@dataclass
-class RegNet(BackboneFactory):
-    """
-    Wrapper for ClassyVision RegNet model so we can map layers into feature
-    blocks to facilitate feature extraction and benchmarking at several layers.
-    This model is defined on the fly from a RegNet base class and a configuration file.
-    We follow the feature naming convention defined in the ResNet vissl trunk.
-    [ Adapted from VISSL ]
-    """
-
-    depth: int
-    w_0: int
-    w_a: float
-    w_m: float
-    group_width: int
-    bottleneck_multiplier: float = 1.0
-    stem_type: StemType = StemType.SIMPLE_STEM_IN
-    stem_width: int = 32
-    block_type: BlockType = BlockType.RES_BOTTLENECK_BLOCK
-    activation: ActivationType = ActivationType.RELU
-    use_se: bool = True
-    se_ratio: float = 0.25
-    bn_epsilon: float = 1e-05
-    bn_momentum: float = 0.1
-    checkpoint: Optional[str] = None
-    regnet_params: RegNetParams = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.regnet_params = RegNetParams(
-            depth=self.depth,
-            w_0=self.w_0,
-            w_a=self.w_a,
-            w_m=self.w_m,
-            group_width=self.group_width,
-            bottleneck_multiplier=self.bottleneck_multiplier,
-            stem_type=self.stem_type,
-            stem_width=self.stem_width,
-            block_type=self.block_type,
-            activation=self.activation,
-            use_se=self.use_se,
-            se_ratio=self.se_ratio,
-            bn_epsilon=self.bn_epsilon,
-            bn_momentum=self.bn_momentum,  # type: ignore
-        )
-
-    def _load_from_checkpoint(self, model: nn.Module, *, checkpoint: str | Path) -> None:
-        checkpoint = Path(to_absolute_path(str(checkpoint)))
-        if not checkpoint.exists():
-            raise AttributeError(f"Checkpoint '{checkpoint}' does not exist.")
-        LOGGER.info(
-            f"Attempting to load {self.__class__.__name__} model from path '{str(checkpoint)}'."
-        )
-
-        state_dict = torch.load(f=checkpoint, map_location=torch.device("cpu"))
-        trunk_params = state_dict["classy_state_dict"]["base_model"]["model"]["trunk"]
-        model.load_state_dict(trunk_params)
-        LOGGER.info(
-            f"Successfully loaded {self.__class__.__name__} model from path '{str(checkpoint)}'."
-        )
-
-    @implements(BackboneFactory)
-    def __call__(self) -> ModelFactoryOut[nn.Sequential]:
-        regnet = ClassyRegNet(self.regnet_params)  # type: ignore
-        # Now map the models to the structure we want to expose for SSL tasks
-        # The upstream RegNet model is made of :
-        # - `stem`
-        # - n x blocks in trunk_output, named `block1, block2, ..`
-
-        # We're only interested in the stem and successive blocks
-        # everything else is not picked up on purpose
-        stem = cast(nn.Sequential, regnet.stem)
-        feature_blocks_d: dict[str, nn.Module] = OrderedDict({"conv1": stem})
-        # - get all the feature blocks
-        for name, module in regnet.trunk_output.named_children():  # type: ignore
-            if not name.startswith("block"):
-                raise AttributeError(f"Unexpected layer name {name}")
-            block_index = len(feature_blocks_d) + 1
-
-            feature_blocks_d[f"res{block_index}"] = module
-
-        # - finally, add avgpool and flatten.
-        feature_blocks_d["avgpool"] = nn.AdaptiveAvgPool2d((1, 1))
-        feature_blocks_d["flatten"] = nn.Flatten()
-
-        feature_blocks = nn.Sequential(feature_blocks_d)
-
-        if self.checkpoint is not None:
-            self._load_from_checkpoint(model=feature_blocks, checkpoint=self.checkpoint)
-
-        out_dim: int = cast(int, regnet.trunk_output[-1][0].proj.out_channels)  # type: ignore
-
-        return feature_blocks, out_dim
 
 
 class ConvNeXtVersion(Enum):

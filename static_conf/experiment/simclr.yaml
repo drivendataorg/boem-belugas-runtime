@@ -7,6 +7,7 @@ defaults:
     - override /backbone: beit
     - override /alg: simclr
     - override /logger: whaledo
+    - override /checkpointer: whaledo
     - _self_
 
 backbone:
@@ -18,13 +19,6 @@ dm:
   training_mode: step
   train_batch_size: 32
   train_transforms: 
-    # _target_: torchvision.transforms.Compose
-    # transforms: 
-    # - _target_: whaledo.transforms.ResizeAndPadToSize
-    #   size: ${ dm.image_size }
-    # - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
-    #   global_crop_size: ${ dm.image_size }
-    #   local_crops_number: 0
     _target_: torchvision.transforms.Compose
     transforms: 
     # - _target_: whaledo.transforms.ResizeAndPadToSize
@@ -36,7 +30,7 @@ dm:
       global_crop_size: ${ dm.image_size }
 
 trainer:
-  max_steps: 25000
+  max_steps: 10000
   multiple_trainloader_mode: 'min_size'
   val_check_interval: 500
   precision: 16

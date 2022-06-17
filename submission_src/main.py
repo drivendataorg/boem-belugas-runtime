@@ -5,7 +5,6 @@ from PIL import Image
 from conduit.data.structures import MeanStd
 from loguru import logger
 import pandas as pd  # type: ignore
-from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as T  # type: ignore
 from tqdm import tqdm  # type: ignore
@@ -40,20 +39,20 @@ class TestTimeWhaledoDataset(Dataset):
     a dictionary containing the image id and image tensors.
     """
 
-    def __init__(self, metadata: pd.DataFrame, transform: Optional[ImageTform] = None) -> None:
+    def __init__(
+        self, metadata: pd.DataFrame, image_size: Optional[int] = DEFAULT_IMAGE_SIZE
+    ) -> None:
+        if image_size is None:
+            image_size = DEFAULT_IMAGE_SIZE
         self.metadata = metadata
-        self.transform = self._default_train_transforms if transform is None else transform
-
-    @property
-    def _default_train_transforms(self) -> ImageTform:
         transform_ls: List[ImageTform] = [
             ResizeAndPadToSize(DEFAULT_IMAGE_SIZE),
             T.ToTensor(),
             T.Normalize(*IMAGENET_STATS),
         ]
-        return T.Compose(transform_ls)
+        self.transform = T.Compose(transform_ls)
 
-    def __getitem__(self, idx: int) -> Dict[str, Union[int, Tensor]]:
+    def __getitem__(self, idx: int) -> Dict[str, Union[int, Image.Image]]:
         image = Image.open(DATA_DIRECTORY / self.metadata.path.iloc[idx]).convert("RGB")
         image = self.transform(image)
         return {"image_id": self.metadata.index[idx], "image": image}
@@ -72,7 +71,7 @@ def main() -> None:
         pd.DataFrame, pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
     )
     logger.info("Loading pre-trained model...")
-    backbone, feature_dim, transform = load_model_from_artifact(MODEL_PATH)
+    backbone, feature_dim, image_size = load_model_from_artifact(MODEL_PATH)
     model = Model(backbone=backbone, feature_dim=feature_dim)
 
     # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
@@ -88,7 +87,7 @@ def main() -> None:
     metadata = metadata.loc[scenario_imgs]
 
     # instantiate dataset/loader and generate embeddings for all images
-    dataset = TestTimeWhaledoDataset(metadata, transform=transform)
+    dataset = TestTimeWhaledoDataset(metadata, image_size=image_size)
     dataloader = DataLoader(dataset, batch_size=16)
     embeddings = []
     model.eval()
