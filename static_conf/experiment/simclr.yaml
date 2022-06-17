@@ -38,9 +38,10 @@ trainer:
 
 alg:
   base_lr: 1e-4
-  temp0: 0.1
+  temp_start: 0.1
+  temp_end: 0.1
+  temp_warmup_steps: ${ trainer.max_steps }
   weight_decay: 1.e-1
-  learn_temp: false
   proj_dim: 256
   mlp_head: true
   scheduler_cls: whaledo.schedulers.CosineLRWithLinearWarmup
