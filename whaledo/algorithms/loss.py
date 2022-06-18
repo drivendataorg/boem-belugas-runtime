@@ -151,10 +151,16 @@ def supcon_loss(
     candidate_labels_t = candidate_labels_t.flatten()
     # The positive samples for a given anchor are those samples from the candidate set sharing its
     # label.
-    mask = anchor_labels == candidate_labels_t
+    pos_mask = anchor_labels == candidate_labels_t
+    neg_mask = None
+    if dcl:
+        neg_mask = ~pos_mask
+    elif exclude_diagonal:
+        neg_mask = ~torch.eye(len(pos_mask), dtype=torch.bool, device=pos_mask.device)
     if exclude_diagonal:
-        mask.fill_diagonal_(False)
-    pos_inds = mask.nonzero(as_tuple=True)
+        pos_mask.fill_diagonal_(False)
+
+    pos_inds = pos_mask.nonzero(as_tuple=True)
     row_inds, col_inds = pos_inds
     # Return early if there are no positive pairs.
     if len(row_inds) == 0:
@@ -172,19 +178,11 @@ def supcon_loss(
     counts_flat = row_counts[row_inverse].flatten()
     positives = logits[row_inverse, ..., col_inds].flatten() / counts_flat
 
-    z_mask = None
-    if exclude_diagonal:
-        z_mask = ~torch.eye(len(logits), dtype=torch.bool, device=logits.device)
-    if dcl:
-        dcl_mask = ~mask
-        if z_mask is None:
-            z_mask = dcl_mask
-        else:
-            z_mask &= dcl_mask
-    if (z_mask is not None) and (anchors.ndim == 3):
-        z_mask = z_mask.unsqueeze(1)
-
-    z = logsumexp(logits, dim=-1, mask=z_mask)
+    if neg_mask is not None:
+        neg_mask = neg_mask[selected_rows]
+        if anchors.ndim == 3:
+            neg_mask = neg_mask.unsqueeze(1)
+    z = logsumexp(logits, dim=-1, mask=neg_mask)
     return (z.sum() - positives.sum()) / z.numel()
 
 

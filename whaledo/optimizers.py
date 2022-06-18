@@ -51,9 +51,9 @@ class Adafactor(torch.optim.Optimizer):
         eps: Tuple[float, float] = (1e-30, 1e-3),
         clip_threshold: float = 1.0,
         decay_rate: float = -0.8,
-        beta1: Optional[float] = None,
+        beta1: Optional[float] = 0.9,
         weight_decay: float = 0.0,
-        scale_parameter: bool = True,
+        scale_parameter: bool = False,
         warmup_init: bool = False,
     ) -> None:
         relative_step = lr is None
