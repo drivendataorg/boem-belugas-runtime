@@ -51,6 +51,7 @@ class Moco(Algorithm):
     temp_warmup_steps: int = 0
     temp: CosineWarmup = field(init=False)
 
+    cross_sample_only: bool = False
     loss_fn: LossFn = LossFn.SUPCON
     dcl: bool = True
 
@@ -164,6 +165,7 @@ class Moco(Algorithm):
                 candidate_labels=candidate_labels,
                 temperature=temp,
                 dcl=self.dcl,
+                exclude_diagonal=self.cross_sample_only,
             )
         else:
             if self.logit_mb is None:
