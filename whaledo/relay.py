@@ -126,7 +126,7 @@ class WhaledoRelay(Relay):
                 self.log("Checkpoint successfully loaded.")
 
             save_model_artifact(
-                model=model,
+                model=alg.model,
                 run=logger.experiment,
                 config=raw_config,
                 image_size=dm.image_size,
