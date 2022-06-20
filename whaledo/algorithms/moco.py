@@ -15,7 +15,6 @@ from typing_extensions import TypeAlias
 from whaledo.algorithms.base import Algorithm
 from whaledo.algorithms.mean_teacher import MeanTeacher
 from whaledo.algorithms.memory_bank import MemoryBank
-from whaledo.schedulers import CosineWarmup
 from whaledo.transforms import MultiCropOutput, MultiViewPair
 from whaledo.utils import to_item
 
@@ -38,34 +37,27 @@ class LossFn(Enum):
 class Moco(Algorithm):
     IGNORE_INDEX: ClassVar[int] = -100
 
-    proj_dim: int = 128
-    mlp_head: bool = True
-
     mb_capacity: int = 16_384
     ema_decay_start: float = 0.99
     ema_decay_end: float = 0.99
     ema_warmup_steps: int = 0
 
-    temp_start: float = 1.0
-    temp_end: float = 1.0
-    temp_warmup_steps: int = 0
-    temp: CosineWarmup = field(init=False)
-
     cross_sample_only: bool = False
     loss_fn: LossFn = LossFn.SUPCON
     dcl: bool = True
 
+    final_norm: bool = True
+    proj_depth: int = 3
+    pred_depth: int = 2
+
     logit_mb: Optional[MemoryBank] = field(init=False)
     label_mb: Optional[MemoryBank] = field(init=False)
+    student: nn.Sequential = field(init=False)
+    teacher: MeanTeacher = field(init=False)
+
+    replace_model: bool = False
 
     def __post_init__(self) -> None:
-        if self.temp_start <= 0:
-            raise AttributeError("'temp_start' must be positive.")
-        if self.temp_end <= 0:
-            raise AttributeError("'temp_end' must be positive.")
-        if self.temp_warmup_steps < 0:
-            raise AttributeError("'temp_warmup_steps' must be non-negative.")
-
         if not (0 <= self.ema_decay_start <= 1):
             raise AttributeError("'ema_decay_start' must be in the range [0, 1].")
         if not (0 <= self.ema_decay_end <= 1):
@@ -78,12 +70,25 @@ class Moco(Algorithm):
 
         # initialise the encoders
         embed_dim = self.model.feature_dim
-        head = nn.Sequential(nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, self.proj_dim))
-        if self.mlp_head:
-            head = nn.Sequential(
-                nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, embed_dim), nn.ReLU(), head
-            )
-        self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
+        projector = self.build_mlp(
+            input_dim=embed_dim,
+            num_layers=self.proj_depth,
+            hidden_dim=self.mlp_dim,
+            out_dim=self.out_dim,
+            final_norm=True,
+        )
+        predictor = self.build_mlp(
+            input_dim=self.out_dim,
+            num_layers=self.pred_depth,
+            hidden_dim=self.mlp_dim,
+            out_dim=self.out_dim,
+            final_norm=self.final_norm,
+        )
+        self.student = nn.Sequential(
+            MultiCropWrapper(backbone=self.model.backbone, head=projector), predictor
+        )
+        if self.replace_model:
+            self.model.backbone = self.student
         self.teacher = MeanTeacher(
             self.student,
             decay_start=self.ema_decay_start,
@@ -97,15 +102,13 @@ class Moco(Algorithm):
         self.label_mb = None
         if self.mb_capacity > 0:
             self.logit_mb = MemoryBank.with_l2_hypersphere_init(
-                dim=self.proj_dim, capacity=self.mb_capacity
+                dim=self.out_dim, capacity=self.mb_capacity
             )
             if self.loss_fn is LossFn.SUPCON:
                 self.label_mb = MemoryBank.with_constant_init(
                     dim=1, capacity=self.mb_capacity, value=self.IGNORE_INDEX, dtype=torch.long
                 )
-        self.temp = CosineWarmup(
-            start_val=self.temp_start, end_val=self.temp_end, warmup_steps=self.temp_warmup_steps
-        )
+        super().__post_init__()
 
     @implements(Algorithm)
     def on_after_batch_transfer(

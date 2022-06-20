@@ -121,7 +121,7 @@ class WhaledoRelay(Relay):
                 alg_kwargs["model"] = model
                 alg.load_from_checkpoint(
                     checkpoint_path=best_model_path,
-                    **alg_kwargs, # type: ignore
+                    **alg_kwargs,  # type: ignore
                 )
                 self.log("Checkpoint successfully loaded.")
 

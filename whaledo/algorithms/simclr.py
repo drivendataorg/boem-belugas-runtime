@@ -8,12 +8,11 @@ from conduit.types import Stage
 import pytorch_lightning as pl
 from ranzen import implements
 import torch
-from torch import Tensor, nn
+from torch import Tensor
 import torch.nn.functional as F
 from typing_extensions import TypeAlias
 
 from whaledo.algorithms.base import Algorithm
-from whaledo.schedulers import CosineWarmup
 from whaledo.transforms import MultiViewPair
 from whaledo.utils import to_item
 
@@ -29,35 +28,24 @@ TrainBatch: TypeAlias = BinarySample[MultiViewPair]
 
 @dataclass(unsafe_hash=True)
 class SimClr(Algorithm):
-
-    proj_dim: int = 256
-    mlp_head: bool = True
     dcl: bool = True
-
-    temp_start: float = 1.0
-    temp_end: float = 1.0
-    temp_warmup_steps: int = 0
-    temp: CosineWarmup = field(init=False)
+    student: MultiCropWrapper = field(init=False)
+    proj_depth: int = 2
 
     def __post_init__(self) -> None:
-        if self.temp_start <= 0:
-            raise AttributeError("'temp_start' must be positive.")
-        if self.temp_end <= 0:
-            raise AttributeError("'temp_end' must be positive.")
-        if self.temp_warmup_steps < 0:
-            raise AttributeError("'temp_warmup_steps' must be non-negative.")
-
         # initialise the encoders
         embed_dim = self.model.feature_dim
-        head = nn.Sequential(nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, self.proj_dim))
-        if self.mlp_head:
-            head = nn.Sequential(
-                nn.BatchNorm1d(embed_dim), nn.Linear(embed_dim, embed_dim), nn.ReLU(), head
-            )
-        self.student = MultiCropWrapper(backbone=self.model.backbone, head=head)
-        self.temp = CosineWarmup(
-            start_val=self.temp_start, end_val=self.temp_end, warmup_steps=self.temp_warmup_steps
+        projector = self.build_mlp(
+            input_dim=embed_dim,
+            num_layers=self.proj_depth,
+            hidden_dim=self.mlp_dim,
+            out_dim=self.out_dim,
+            final_norm=True,
         )
+        self.student = MultiCropWrapper(backbone=self.model.backbone, head=projector)
+        if self.replace_model:
+            self.model.backbone = self.student
+        super().__post_init__()
 
     @implements(Algorithm)
     def on_after_batch_transfer(

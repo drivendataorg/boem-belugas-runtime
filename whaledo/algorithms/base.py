@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from whaledo.schedulers import CosineWarmup
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import reduce
@@ -80,10 +81,29 @@ class Algorithm(pl.LightningModule):
     batch_transforms: Optional[List[BatchTransform]] = None
     test_on_best: bool = False
 
+    out_dim: int = 128
+    mlp_dim: int = 4096
+
+    temp_start: float = 1.0
+    temp_end: float = 1.0
+    temp_warmup_steps: int = 0
+    temp: CosineWarmup = field(init=False)
+
     def __new__(cls: type[Self], *args: Any, **kwargs: Any) -> Self:
         obj = object.__new__(cls)
         pl.LightningModule.__init__(obj)
         return obj
+
+    def __post_init__(self) -> None:
+        if self.temp_start <= 0:
+            raise AttributeError("'temp_start' must be positive.")
+        if self.temp_end <= 0:
+            raise AttributeError("'temp_end' must be positive.")
+        if self.temp_warmup_steps < 0:
+            raise AttributeError("'temp_warmup_steps' must be non-negative.")
+        self.temp = CosineWarmup(
+            start_val=self.temp_start, end_val=self.temp_end, warmup_steps=self.temp_warmup_steps
+        )
 
     def _apply_batch_transforms(self, batch: T) -> T:
         if self.batch_transforms is not None:
@@ -252,3 +272,30 @@ class Algorithm(pl.LightningModule):
         self, datamodule: CdtVisionDataModule, *, trainer: pl.Trainer, test: bool = True
     ) -> Self:
         return self._run_internal(datamodule=datamodule, trainer=trainer, test=test)
+
+    def build_mlp(
+        self,
+        input_dim: int,
+        *,
+        num_layers: int,
+        hidden_dim: int,
+        out_dim: int,
+        final_norm: bool = True,
+    ) -> nn.Module:
+        if num_layers <= 0:
+            return nn.Identity()
+        else:
+            mlp: List[nn.Module] = []
+            for l in range(num_layers):
+                dim1 = input_dim if l == 0 else hidden_dim
+                dim2 = out_dim if l == num_layers - 1 else hidden_dim
+
+                mlp.append(nn.Linear(dim1, dim2, bias=False))
+
+                if l < (num_layers - 1):
+                    mlp.append(nn.BatchNorm1d(dim2))
+                    mlp.append(nn.GELU())
+                elif final_norm:
+                    mlp.append(nn.BatchNorm1d(dim2, affine=False))
+
+            return nn.Sequential(*mlp)

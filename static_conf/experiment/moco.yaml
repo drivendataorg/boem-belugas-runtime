@@ -26,20 +26,22 @@ dm:
     # - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
     #   global_crop_size: ${ dm.image_size }
     #   local_crops_number: 0
-    - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform
+    - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform2
       global_crop_size: ${ dm.image_size }
 
 trainer:
   max_steps: 10000
   multiple_trainloader_mode: 'min_size'
-  val_check_interval: 500
+  val_check_interval: 250
   precision: 16
   accumulate_grad_batches: null
+  sync_batchnorm: true
 
 alg:
   base_lr: 1e-4
-  proj_dim: 256
-  mlp_head: true
+  out_dim: 256
+  mlp_dim: 4096
+  final_norm: true
   loss_fn: SUPCON
   temp_start: 0.1
   temp_end: 0.1
