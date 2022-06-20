@@ -31,6 +31,7 @@ class SimClr(Algorithm):
     dcl: bool = True
     student: MultiCropWrapper = field(init=False)
     proj_depth: int = 2
+    replace_model: bool = False
 
     def __post_init__(self) -> None:
         # initialise the encoders

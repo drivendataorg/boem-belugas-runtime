@@ -41,6 +41,8 @@ alg:
   base_lr: 1e-4
   out_dim: 256
   mlp_dim: 4096
+  proj_depth: 3
+  pred_depth: 2
   final_norm: true
   loss_fn: SUPCON
   temp_start: 0.1
