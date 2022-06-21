@@ -26,7 +26,7 @@ dm:
     # - _target_: whaledo.transforms.MultiCropTransform.with_dino_transform
     #   global_crop_size: ${ dm.image_size }
     #   local_crops_number: 0
-    - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform2
+    - _target_: whaledo.transforms.MultiCropTransform.with_whaledo_transform
       global_crop_size: ${ dm.image_size }
 
 trainer:

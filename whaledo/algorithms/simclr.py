@@ -72,12 +72,9 @@ class SimClr(Algorithm):
         batch_idx: int,
     ) -> Tensor:
         logits_v1 = self.student.forward(batch.x.v1)
-        logits_v1 = F.normalize(logits_v1, dim=1, p=2)
-
         logits_v2 = self.student.forward(batch.x.v2)
-        logits_v2 = F.normalize(logits_v2, dim=1, p=2)
+        logits = F.normalize(torch.cat((logits_v1, logits_v2), dim=0), dim=1, p=2)
 
-        logits = torch.cat((logits_v1, logits_v2), dim=0)
         temp = self.temp.val
         loss = supcon_loss(
             anchors=logits,

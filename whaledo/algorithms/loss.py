@@ -45,19 +45,21 @@ def maybe_synchronize(input: Tensor) -> Tensor:
     return input
 
 
-def logsumexp(input: Tensor, *, dim: int, keepdim: bool = False, mask: Optional[Tensor] = None):
+def logsumexp(
+    input: Tensor, *, dim: int, keepdim: bool = False, keep_mask: Optional[Tensor] = None
+) -> Tensor:
     """Numerically stable logsumexp on the last dim of `inputs`.
     reference: https://github.com/pytorch/pytorch/issues/2591
     """
-    if mask is None:
+    if keep_mask is None:
         return input.logsumexp(dim=dim, keepdim=keepdim)
     eps = torch.finfo(input.dtype).eps
-    max_offset = eps * mask.to(input.dtype)
+    max_offset = eps * keep_mask.to(input.dtype)
     max_ = torch.max(input + max_offset, dim=dim, keepdim=True).values
     input = input - max_
     if keepdim is False:
         max_ = max_.squeeze(dim)
-    input_exp_m = input.exp() * mask
+    input_exp_m = input.exp() * keep_mask
     return max_ + input_exp_m.sum(dim=dim, keepdim=keepdim).log()
 
 
@@ -104,7 +106,7 @@ def simclr_loss(
         z_mask = ~torch.eye(len(logits), dtype=torch.bool, device=logits.device)
         if anchors.ndim == 3:
             z_mask = z_mask.unsqueeze(1)
-    z = logsumexp(logits, dim=-1, mask=z_mask)
+    z = logsumexp(logits, dim=-1, keep_mask=z_mask)
     return (z.sum() - l_pos.sum()) / z.numel()
 
 
@@ -172,6 +174,9 @@ def supcon_loss(
     logits = anchors[selected_rows] @ candidates_t.T
     # Apply temperature-scaling to the logits.
     logits = logits / temperature
+    # Subtract the maximum for numerical stability.
+    logits_max = logits.max(dim=1, keepdim=True).values
+    logits = logits - logits_max.detach()
     # Tile the row counts if dealing with multicropping.
     if anchors.ndim == 3:
         row_counts = row_counts.unsqueeze(1).expand(-1, anchors.size(1))
@@ -182,7 +187,7 @@ def supcon_loss(
         neg_mask = neg_mask[selected_rows]
         if anchors.ndim == 3:
             neg_mask = neg_mask.unsqueeze(1)
-    z = logsumexp(logits, dim=-1, mask=neg_mask)
+    z = logsumexp(logits, dim=-1, keep_mask=neg_mask)
     return (z.sum() - positives.sum()) / z.numel()
 
 
