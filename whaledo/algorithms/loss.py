@@ -9,9 +9,10 @@ from typing_extensions import Self
 
 __all__ = [
     "DecoupledContrastiveLoss",
-    "decoupled_constrastive_loss",
+    "decoupled_contrastive_loss",
     "moco_v2_loss",
     "simclr_loss",
+    "soft_supcon_loss",
     "supcon_loss",
 ]
 
@@ -48,9 +49,7 @@ def maybe_synchronize(input: Tensor) -> Tensor:
 def logsumexp(
     input: Tensor, *, dim: int, keepdim: bool = False, keep_mask: Optional[Tensor] = None
 ) -> Tensor:
-    """Numerically stable logsumexp on the last dim of `inputs`.
-    reference: https://github.com/pytorch/pytorch/issues/2591
-    """
+    """Numerically stable implementation of logsumexp that allows for masked summation."""
     if keep_mask is None:
         return input.logsumexp(dim=dim, keepdim=keepdim)
     eps = torch.finfo(input.dtype).eps
@@ -60,7 +59,7 @@ def logsumexp(
     if keepdim is False:
         max_ = max_.squeeze(dim)
     input_exp_m = input.exp() * keep_mask
-    return max_ + input_exp_m.sum(dim=dim, keepdim=keepdim).log()
+    return max_ + torch.log(input_exp_m.sum(dim=dim, keepdim=keepdim) + eps)
 
 
 def moco_v2_loss(
@@ -73,7 +72,7 @@ def moco_v2_loss(
 ) -> Tensor:
     positives = maybe_synchronize(positives)
     negatives = maybe_synchronize(negatives)
-    if (positives.requires_grad) or (negatives.requires_grad):
+    if positives.requires_grad or negatives.requires_grad:
         anchors = maybe_synchronize(anchors)
 
     n, d = anchors.size(0), anchors.size(-1)
@@ -191,7 +190,68 @@ def supcon_loss(
     return (z.sum() - positives.sum()) / z.numel()
 
 
-def decoupled_constrastive_loss(
+def soft_supcon_loss(
+    z1: Tensor,
+    *,
+    p1: Tensor,
+    z2: T = None,
+    p2: T = None,
+    temperature: Union[float, Tensor] = 0.1,
+    exclude_diagonal: bool = False,
+    dcl: bool = True,
+) -> Tensor:
+    if len(z1) != len(p1):
+        raise ValueError("'z1' and 'p1' must match in size at dimension 0.")
+    # Create new variables for the candidate- variables to placate
+    # the static-type checker.
+    if z2 is None:
+        z2_t = z1
+        p2_t = p1
+        # Forbid interactions between the samples and themsleves.
+        exclude_diagonal = True
+    else:
+        z2_t = z2
+        p2_t = cast(Tensor, p2)
+        if len(z2_t) != len(p2_t):
+            raise ValueError("'z2' and 'p2' must match in size at dimension 0.")
+        if p1.shape != p2_t.shape:
+            raise ValueError("'p1' and 'p2' must have the same shape.")
+
+    y1 = torch.ceil(p1).long()
+    y2 = torch.ceil(p2_t).long()
+    # The positive samples for a given anchor are those samples from the candidate set sharing its
+    # label.
+    mask = y1 == y2.unsqueeze(1)
+    diag = None
+    if exclude_diagonal:
+        diag = torch.eye(len(z1), dtype=torch.bool, device=z1.device)
+        mask = mask ^ diag.unsqueeze(-1)
+
+    pos_inds = mask.nonzero(as_tuple=True)
+    row_inds, col_inds, coupling_inds = pos_inds
+    # Return early if there are no positive pairs.
+    if len(row_inds) == 0:
+        return z1.new_zeros(())
+    # Only compute the pairwise similarity for those samples which have positive pairs.
+    selected_rows, row_inverse, _ = row_inds.unique(return_inverse=True, return_counts=True)
+    logits = z1[selected_rows] @ z2_t.T
+    logits = logits / temperature
+    coupling_coeffs = p1[row_inverse, ..., coupling_inds] * p2_t[col_inds, ..., coupling_inds]
+    denom = coupling_coeffs.new_zeros(len(selected_rows)).scatter_(
+        dim=0, index=row_inverse, src=coupling_coeffs, reduce="add"
+    )[row_inverse]
+    positives = logits[row_inverse, ..., col_inds]
+    weighted_positives = (positives * coupling_coeffs) / denom
+
+    neg_mask = None
+    if diag is not None:
+        neg_mask = ~diag[selected_rows]
+
+    z = logsumexp(logits, dim=-1, keep_mask=neg_mask)
+    return (z.sum() - weighted_positives.sum()) / z.numel()
+
+
+def decoupled_contrastive_loss(
     z1: Tensor,
     z2: Tensor,
     *,
@@ -252,7 +312,7 @@ class DecoupledContrastiveLoss(nn.Module):
         :param z2: Second embedding vector
         :return: One-way loss between the embedding vectors.
         """
-        return decoupled_constrastive_loss(
+        return decoupled_contrastive_loss(
             z1, z2, temperature=self.temperature, weight_fn=self.weight_fn
         )
 
