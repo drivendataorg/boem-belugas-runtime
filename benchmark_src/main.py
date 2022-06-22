@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from tqdm import tqdm
-
+import os
 
 ROOT_DIRECTORY = Path("/code_execution")
 PREDICTION_FILE = ROOT_DIRECTORY / "submission" / "submission.csv"
@@ -49,6 +49,8 @@ def main():
     metadata = pd.read_csv(DATA_DIRECTORY / "metadata.csv", index_col="image_id")
     logger.info("Loading pre-trained model")
     model = torch.load("model.pth")
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model.to(device)
 
     # we'll only precompute embeddings for the images in the scenario files (rather than all images), so that the
     # benchmark example can run quickly when doing local testing. this subsetting step is not necessary for an actual
@@ -62,14 +64,17 @@ def main():
 
     # instantiate dataset/loader and generate embeddings for all images
     dataset = ImagesDataset(metadata)
-    dataloader = DataLoader(dataset, batch_size=16)
+    dataloader = DataLoader(dataset, batch_size=16, num_workers = os.cpu_count())
     embeddings = []
     model.eval()
-
+    
     logger.info("Precomputing embeddings")
     for batch in tqdm(dataloader, total=len(dataloader)):
-        batch_embeddings = model(batch["image"])
-        batch_embeddings_df = pd.DataFrame(batch_embeddings.detach().numpy(), index=batch["image_id"])
+        with torch.no_grad():
+            img = batch["image"].to(device)
+            batch_embeddings = model(img)
+        batch_embeddings_df = pd.DataFrame(batch_embeddings.detach().cpu().numpy(), 
+                                               index = batch["image_id"])
         embeddings.append(batch_embeddings_df)
 
     embeddings = pd.concat(embeddings)
